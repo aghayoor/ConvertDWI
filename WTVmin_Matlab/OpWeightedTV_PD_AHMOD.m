@@ -50,7 +50,7 @@ P = zeros(size(WDX));
 lambda2 = lambda/2;
 gamma = 0.35*(1/lambda2);
 
-L = sqrt(12);
+L = sqrt(8);
 tau = 1/L;
 sigma = 1/((L^2)*tau); 
 theta = 1/sqrt(1+2*gamma*tau);
