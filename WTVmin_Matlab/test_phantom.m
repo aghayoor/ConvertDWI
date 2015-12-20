@@ -19,10 +19,10 @@ figure(3); imagesc(abs(Xlow)); colorbar; title('low resolution input');
 %% Run New Weighted TV algorithm (works better with real data)
 lambda = 5e-1; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 1000;  %number of iterations (typically 500-1000 for Fourier inversion)
-[X, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
-figure(4); imagesc(abs(X),[0,1]); colorbar; title('hi resolution output');
+[X1, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
+figure(4); imagesc(abs(X1),[0,1]); colorbar; title('hi resolution output');
 figure(5); plot(cost); xlabel('iteration'); ylabel('cost');
-SNR = -20*log10(norm(X(:)-X0(:))/norm(X0(:)));
+SNR = -20*log10(norm(X1(:)-X0(:))/norm(X0(:)));
 fprintf('WTV output SNR = %2.1f dB\n',SNR);
 %% Run Old Weighted TV algorithm (works better with phantoms)
 lambda = 5e-1; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
@@ -38,5 +38,5 @@ Niter = 100;  %number of iterations (typically 20-100 for Fourier inversion)
 [X2, cost] = OpTV_AL(b,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD.m
 figure(8); imagesc(abs(X2),[0,1]); colorbar; title('hi resolution output (no edgemask)');
 figure(9); plot(cost); xlabel('iteration'); ylabel('cost');
-SNR = -20*log10(norm(X(:)-X0(:))/norm(X0(:)));
+SNR = -20*log10(norm(X2(:)-X0(:))/norm(X0(:)));
 fprintf('TV output SNR = %2.1f dB\n',SNR);
