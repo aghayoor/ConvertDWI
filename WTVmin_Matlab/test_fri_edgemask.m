@@ -1,6 +1,6 @@
 % Test of FRI Edgemask
 %% Solve for annihliating filters
-load testdata_fri;   
+load Data/testdata_fri;
 
 %Size of rectangular k-space sampling window used in algorithm
 %can be any dimensions <= size(inputImage). 
