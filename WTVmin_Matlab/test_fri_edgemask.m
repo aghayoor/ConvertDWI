@@ -1,6 +1,6 @@
 % Test of FRI Edgemask
 %% Solve for annihliating filters
-load Data/testdata_fri;
+load Data/dwi_testdata;
 
 %Size of rectangular k-space sampling window used in algorithm
 %can be any dimensions <= size(inputImage). 
@@ -28,7 +28,7 @@ edgelambda = 1e-5;
 [U,s] = compute_fri_filters(inputImage,sample_siz,filter_siz,edgelambda);
 %% Combine annihlating filters to create edgemask
 %output pixel dimensions of edgemask. Does not need to match the input size.
-outres = [300,300]; 
+outres = [256,256];
 
 %combines the filters U with weights s to create an edgemask at the
 %specified resolution. This step can be modified later to alter 
