@@ -1,8 +1,8 @@
 % Test of Weighted TV algorithm for super-resolution reconstruction 
 % of MRI data.
 %% Load Data
-load Data/testdata_fri;   %m=fourier data, k=fourier indices
-load Data/edgemask_fri;   %edgemask estimated in stage one
+load Data/dwi_testdata;   %m=fourier data, k=fourier indices
+load Data/dwi_edgemask_fri;   %edgemask estimated in stage one
 X0 = double(inputImage);
 m = fft2(X0);
 inres = size(m);
@@ -66,14 +66,14 @@ figure(12); plot(cost); xlabel('iteration'); ylabel('cost'); %observe the irregu
 SNR_WTV_old = -20*log10(norm(X_WTVold(:)-X0(:))/norm(X0(:)));
 fprintf('WTV output SNR (Old Weighted TV algorithm with few iterations) = %2.1f dB\n',SNR_WTV_old);
 %% Comparison figure
-labelIFFT = sprintf('SNR=%6.2f',SNR_IFFT);
-labelTV   = sprintf('SNR=%6.2f',SNR_TV);
-labelWTV  = sprintf('SNR=%6.2f',SNR_WTV);
+labelIFFT = sprintf('SNR=%6.1f',SNR_IFFT);
+labelTV   = sprintf('SNR=%6.1f',SNR_TV);
+labelWTV  = sprintf('SNR=%6.1f',SNR_WTV);
 
 
 figure(100);
 subplot(2,4,1);
-imshow(abs(X0),[0 1]); title('HighResolution image'); axis image;
+imshow(abs(X0),[0 1]); title('high resolution image'); axis image;
 subplot(2,4,2);
 imshow(abs(X_IFFT),[0 1]); title('x2 SR IFFT'); xlabel(labelIFFT);
 subplot(2,4,3);
@@ -81,7 +81,7 @@ imshow(abs(X_TV),[0 1]); title('x2 SR TV'); xlabel(labelTV);
 subplot(2,4,4);
 imshow(abs(X_WTV),[0 1]); title('x2 SR WTV'); xlabel(labelWTV);
 subplot(2,4,5);
-imagesc(abs(edgemask),[0 1]); title('FRI edge mask'); axis off; axis image;
+imagesc(abs(edgemask),[0 1]); title('edge map'); axis off; axis image;
 subplot(2,4,6);
 imagesc(abs(X_IFFT-X0),[0 0.2]); title('IFFT error');  axis off; axis image;
 subplot(2,4,7);
@@ -89,4 +89,4 @@ imagesc(abs(X_TV-X0),[0 0.2]); title('TV error');  axis off; axis image;
 subplot(2,4,8);
 imagesc(abs(X_WTV-X0),[0 0.2]); title('WTV error');  axis off; axis image;
 
-colormap('default');
+%colormap('default');
