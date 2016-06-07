@@ -17,7 +17,7 @@ function [X, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter)
 %               dimensions of A(X)
 %          lambda = regularization parameter that balances data fidelity
 %               and smoothness. set lambda high for more smoothing.
-%          siz = output image size, e.g. siz = [512,512]
+%          res = output image size, e.g. size = [512,512]
 %          Niter = is the number of iterations; should be ~500-1000
 %         
 % Output:  X = high-resolution output image
@@ -35,6 +35,7 @@ Atbhat = fft2(At(b));
 
 %Define derivative operator
 [D,Dt] = defDDt;
+
 %Defined weighted derivative operators
 Wbig = repmat(edgemask,[1,1,2]);
 WD = @(x) Wbig.*D(x);
@@ -46,6 +47,14 @@ X = Atb;
 Xhat = X;
 WDX = WD(X);
 P = zeros(size(WDX));
+
+% GradX = D(X);
+% x2=GradX(:,:,1).^2;
+% y2=GradX(:,:,2).^2;
+% Grad=sqrt(x2+y2);
+% figure(201); imagesc(Grad); colorbar; title('Grad(x)');
+% figure(202);imagesc(Grad.*edgemask);colorbar;title('edgemask * Grad(x)')
+% figure(203);imhist(Grad);
 
 lambda2 = lambda/2;
 gamma = 0.35*(1/lambda2);
