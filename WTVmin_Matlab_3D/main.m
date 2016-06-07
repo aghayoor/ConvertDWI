@@ -18,19 +18,11 @@ figure(1); imagesc(abs(X0),[0,1]); colorbar; title('ground truth');
 figure(2); imagesc(edgemask,[0,0.1]); colorbar; title('spatial weights image');
 %figure(2); imshow(edgemask,[0 0.1]); title('spatial weights image');
 
-%X_recov = ifft2(fft2(X0));
-%figure(3); imagesc(abs(X_recov),[0,1]); colorbar; title('recovered ground truth image');
-%X_diff = abs(X0 - X_recov);
-
 %%
 % Test algorithm on 2D images, then if verified, expand it to 3D
 %
 %%
 m = fft2(X0);       %m=fourier data
-
-%freq = fftshift(m);
-%figure(3); imshow(log(freq+1),[]); title('spatial weights image');
-
 inres = size(m);
 
 if mod(inres(1),2)==0
