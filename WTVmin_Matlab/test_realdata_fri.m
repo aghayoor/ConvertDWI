@@ -14,8 +14,8 @@ load /scratch/TESTS/Aim2/MatlabFiles/edgemask_t1t2_1ByGMI.mat
 X0 = double(inputImage);
 m = fft2(X0);       %m=fourier data
 inres = size(m);
-indx = [0:((inres(1)/2)-1), -(inres(1)/2):-1];
-indy = [0:((inres(2)/2)-1), -(inres(2)/2):-1];
+indx = [0:((inres(2)/2)-1), -(inres(2)/2):-1];
+indy = [0:((inres(1)/2)-1), -(inres(1)/2):-1];
 [kx,ky] = meshgrid(indx,indy);
 k(1,:) = kx(:);     %k=fourier indices
 k(2,:) = ky(:);
@@ -27,7 +27,7 @@ figure(2); imshow(edgemask,[0 1]); title('FRI spatial weights image');
 res = [256,256]; %output resolution
 lores = [127,127]; %input resolution (use odd numbers)
 %lores = [63,63];
-ind_samples = find((abs(k(1,:)) <= (lores(2)-1)/2 & (abs(k(2,:)) <= (lores(2)-1)/2))); %Low-pass Fourier indices
+ind_samples = find((abs(k(1,:)) <= (lores(2)-1)/2 & (abs(k(2,:)) <= (lores(1)-1)/2))); %Low-pass Fourier indices
 [A,At] = defAAt_fourier(ind_samples, res); %Define function handles for fourier projection operators
 b = A(X0);       %low-resolution fourier samples
 Xlow = ifft2(reshape(b,lores));
