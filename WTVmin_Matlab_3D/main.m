@@ -24,29 +24,13 @@ figure(2); imagesc(edgemask,[0,0.1]); colorbar; title('spatial weights image');
 %%
 m = fft2(X0);       %m=fourier data
 inres = size(m);
-
-if mod(inres(1),2)==0
-   indx = [0:((inres(1)/2)-1), -(inres(1)/2):-1];
-else
-   indx = [0:(floor(inres(1)/2)), -(floor(inres(1)/2)):-1];
-end
-   
-if mod(inres(2),2)==0
-   indy = [0:((inres(2)/2)-1), -(inres(2)/2):-1];
-else
-   indy = [0:(floor(inres(2)/2)), -(floor(inres(2)/2)):-1];
-end  
-
-[kx,ky] = meshgrid(indx,indy);
-k(1,:) = kx(:);     %k=fourier indices
-k(2,:) = ky(:);
+k = get_kspace_inds( inres ); %k=fourier indices
 
 %% Define Fourier Projection Operators
 res = inres; %output resolution
-%res = [256,256];
 lores = round(inres/2); %input lower resolution (use odd numbers)
-%lores = [127,127];
-ind_samples = find((abs(k(1,:)) <= (lores(1)-1)/2 & (abs(k(2,:)) <= (lores(2)-1)/2))); %Low-pass Fourier indices
+
+ind_samples = get_lowpass_inds(k,lores);
 [A,At] = defAAt_fourier(ind_samples, res); %Define function handles for fourier projection operators                                                
 b = A(X0);       %low-resolution fourier samples
 Xlow = ifft2(reshape(b,lores));
