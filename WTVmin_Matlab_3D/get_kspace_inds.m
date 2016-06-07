@@ -7,13 +7,19 @@ if mod(res(2),2)
 else
     indx = [0:((res(2)/2)-1), -(res(2)/2):-1];
 end
-if mod(res(1),2) 
+if mod(res(1),2)
     indy = ifftshift(-((res(1)-1)/2):((res(1)-1)/2));
 else
     indy = [0:((res(1)/2)-1), -(res(1)/2):-1];
 end
-[kx,ky] = meshgrid(indx,indy);
+if mod(res(3),2)
+    indz = ifftshift(-((res(3)-1)/2):((res(3)-1)/2));
+else
+    indz = [0:((res(3)/2)-1), -(res(3)/2):-1];
+end
+[kx,ky,kz] = meshgrid(indx,indy,indz);
 k(1,:) = kx(:);
 k(2,:) = ky(:);
+k(3,:) = kz(:);
 end
 
