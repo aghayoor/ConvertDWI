@@ -1,5 +1,6 @@
-% Test of Weighted TV algorithm for super-resolution reconstruction
-% of MRI data.
+%
+% Test of Weighted TV algorithm for super-resolution reconstruction of 2D MRI data.
+%
 %% Load Data
 load Data/dwib0_testdata;
 %load Data/dwig1_testdata;
@@ -21,13 +22,6 @@ k(2,:) = ky(:);
 
 figure(1); imagesc(abs(X0),[0,1]); colorbar; title('ground truth');
 figure(2); imshow(edgemask,[0 1]); title('FRI spatial weights image');
-figure(204);imhist(edgemask);
-%edgemask = histeq(edgemask,256);
-%imhist(edgemask);
-
-%edgemask2 = edgemask * 1000;
-%figure(101); imagesc(edgemask2,[0,1000]); colorbar; title('edge mask 2');
-%figure(102); imagesc(histeq(edgemask)); colorbar; title('edge mask 2');
 
 %% Define Fourier Projection Operators
 res = [256,256]; %output resolution
@@ -38,19 +32,33 @@ ind_samples = find((abs(k(1,:)) <= (lores(2)-1)/2 & (abs(k(2,:)) <= (lores(2)-1)
 b = A(X0);       %low-resolution fourier samples
 Xlow = ifft2(reshape(b,lores));
 figure(3); imagesc(abs(Xlow)); colorbar; title('low resolution input');
+
 %% Zero-padded IFFT reconstruction
 X_IFFT = At(fft2(Xlow));
 figure(4); imagesc(abs(X_IFFT)); colorbar; title('hi resolution, zero-padded IFFT');
 SNR_IFFT = -20*log10(norm(X_IFFT(:)-X0(:))/norm(X0(:)));
 fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
-%% Run Standard TV algorithm (no edgemask) -- new implementation
-lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-Niter = 100;  %number of iterations (typically 20-100 for Fourier inversion)
-[X_TV, cost] = OpTV_AL(b,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD.m
+
+%% Run Standard TV algorithm (no edgemask)
+% lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+% Niter = 100;  %number of iterations (typically 20-100 for Fourier inversion)
+% [X_TV, cost] = OpTV_AL(b,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD.m
+% figure(5); imagesc(abs(X_TV),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
+% figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
+% SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
+% fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
+
+%% Run Standard TV algorithm (no edgemask)
+lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+Niter = 200;  %number of iterations (typically 20-100 for Fourier inversion)
+siz = size(edgemask);
+edgemask_1 = ones(siz);
+[X_TV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask_1,lambda,A,At,res,Niter);
 figure(5); imagesc(abs(X_TV),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
 figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
 SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
 fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
+
 %% Run New Weighted TV algorithm
 lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
@@ -59,33 +67,11 @@ figure(7); imagesc(abs(X_WTV),[0,1]); colorbar; title('hi resolution, WTV new');
 figure(8); plot(cost); xlabel('iteration'); ylabel('cost');
 SNR_WTV = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
 fprintf('WTV output SNR (New Weighted TV algorithm) = %2.1f dB\n',SNR_WTV);
-%% Run Old Weighted TV algorithm
-% %observe the irregularities in the cost function--should be monotonically
-% %decreasing
-% lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-% Niter = 1000;  %number of iterations (typically 500-1000 for Fourier inversion)
-% [X_WTVold, cost] = OpWeightedTV_PD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD.m
-% figure(9); imagesc(abs(X_WTVold),[0,1]); colorbar; title('hi resolution, WTV old');
-% figure(10); plot(cost); xlabel('iteration'); ylabel('cost');
-% SNR_WTV_old = -20*log10(norm(X_WTVold(:)-X0(:))/norm(X0(:)));
-% fprintf('WTV output SNR (Old Weighted TV algorithm) = %2.1f dB\n',SNR_WTV_old);
-%% Run Old Weighted TV algorithm w/early termination
-% %Note: this gives a slightly better result versus the other algorithm, but
-% % is more unstable. For example, try taking Niter=100. However, it seems to
-% % give OK results with early termination like Niter=25. Maybe I can fix
-% % this, but I don't recommend using it right now.
-% lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-% Niter = 25;  %number of iterations (typically 500-1000 for Fourier inversion)
-% [X_WTVold, cost] = OpWeightedTV_PD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD.m
-% figure(11); imagesc(abs(X_WTVold),[0,1]); colorbar; title('hi resolution, WTV old');
-% figure(12); plot(cost); xlabel('iteration'); ylabel('cost'); %observe the irregularities in the cost for high Niter
-% SNR_WTV_old = -20*log10(norm(X_WTVold(:)-X0(:))/norm(X0(:)));
-% fprintf('WTV output SNR (Old Weighted TV algorithm with few iterations) = %2.1f dB\n',SNR_WTV_old);
+
 %% Comparison figure
 labelIFFT = sprintf('SNR=%6.1f',SNR_IFFT);
 labelTV   = sprintf('SNR=%6.1f',SNR_TV);
 labelWTV  = sprintf('SNR=%6.1f',SNR_WTV);
-
 
 figure(100);
 subplot(2,4,1);
