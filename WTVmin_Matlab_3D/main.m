@@ -54,25 +54,25 @@ fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
 %%%
 %%% commented out temporarly
 
-% %% Run Standard TV algorithm (no edgemask) -- new implementation
-% % lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-% % Niter = 100;  %number of iterations (typically 20-100 for Fourier inversion)
-% % [X_TV, cost] = OpTV_AL(b,lambda,A,At,res,Niter);
-% % figure(5); imagesc(abs(X_TV),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
-% % figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
-% % SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
-% % fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
-%
-% %% Run Standard TV algorithm (no edgemask)
-% lambda = 3e-2; %regularization parameter
-% Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
-% siz = size(edgemask);
-% edgemask_1 = ones(siz);
-% [X_TV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask_1,lambda,A,At,res,Niter);
+%% Run Standard TV algorithm (no edgemask) -- new implementation
+% lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+% Niter = 100;  %number of iterations (typically 20-100 for Fourier inversion)
+% [X_TV, cost] = OpTV_AL(b,lambda,A,At,res,Niter);
 % figure(5); imagesc(abs(X_TV),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
 % figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
 % SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
 % fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
+
+%% Run Standard TV algorithm (no edgemask)
+lambda = 3e-2; %regularization parameter
+Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
+siz = size(edgemask);
+edgemask_1 = ones(siz);
+[X_TV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask_1,lambda,A,At,res,Niter);
+figure(5); imagesc(abs(X_TV),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
+figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
+SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
+fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
 %
 % %% Run New Weighted TV algorithm
 % lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])

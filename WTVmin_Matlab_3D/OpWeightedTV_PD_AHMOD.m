@@ -29,7 +29,7 @@ function [X, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter)
 %           Journal of Mathematical Imaging and Vision, 40(1), 120-145.
 
 %Define AtA fourier mask
-p_image = zeros(res,'double'); p_image(1,1) = 1;
+p_image = zeros(res,'double'); p_image(1,1,1) = 1;
 AtAhat = fft2(At(A(p_image)));
 Atbhat = fft2(At(b));
 
@@ -37,7 +37,7 @@ Atbhat = fft2(At(b));
 [D,Dt] = defDDt;
 
 %Defined weighted derivative operators
-Wbig = repmat(edgemask,[1,1,2]);
+Wbig = repmat(edgemask,[1,1,1,3]);
 WD = @(x) Wbig.*D(x);
 WDt = @(x) Dt(Wbig.*x);
 
@@ -48,13 +48,18 @@ Xhat = X;
 WDX = WD(X);
 P = zeros(size(WDX));
 
-% GradX = D(X);
-% x2=GradX(:,:,1).^2;
-% y2=GradX(:,:,2).^2;
-% Grad=sqrt(x2+y2);
-% figure(201); imagesc(Grad); colorbar; title('Grad(x)');
-% figure(202);imagesc(Grad.*edgemask);colorbar;title('edgemask * Grad(x)')
-% figure(203);imhist(Grad);
+%%%%%%
+GradX = D(X);
+x2=GradX(:,:,:,1).^2;
+y2=GradX(:,:,:,2).^2;
+z2=GradX(:,:,:,3).^2;
+Grad=sqrt(x2+y2+z2);
+Grad_size = size(Grad);
+Grad_2d = Grad(:,:,round(Grad_size(3)/2));
+figure(201); imagesc(Grad_2d); colorbar; title('Grad(x)');
+%figure(202);imagesc(Grad.*edgemask);colorbar;title('edgemask * Grad(x)')
+%figure(203);imhist(Grad);
+%%%%%%
 
 lambda2 = lambda/2;
 gamma = 0.35*(1/lambda2);
@@ -65,7 +70,7 @@ sigma = 1/((L^2)*tau);
 theta = 1/sqrt(1+2*gamma*tau);
 
 prox = @(x,lambda,tau) ... 
-    ifft2((tau*Atbhat + lambda*fft2(x))./(lambda + tau*AtAhat));
+    ifftn((tau*Atbhat + lambda*fftn(x))./(lambda + tau*AtAhat));
 
 % Begin primal-dual AHMOD algorithm
 cost = zeros(1,Niter);
@@ -86,7 +91,7 @@ for i=1:Niter
     
     %Calculate cost function      
     WDX = WD(X);
-    NWDX = sqrt(abs(WDX(:,:,1)).^2 + abs(WDX(:,:,2)).^2);
+    NWDX = sqrt(abs(WDX(:,:,:,1)).^2 + abs(WDX(:,:,:,2)).^2 + abs(WDX(:,:,:,3)).^2);
     diff = A(X)-b;
     cost(i) = norm(diff(:)).^2 + lambda*sum(NWDX(:)); %cost function
 end
