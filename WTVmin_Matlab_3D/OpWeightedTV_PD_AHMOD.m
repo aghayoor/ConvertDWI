@@ -30,8 +30,8 @@ function [X, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter)
 
 %Define AtA fourier mask
 p_image = zeros(res,'double'); p_image(1,1,1) = 1;
-AtAhat = fft2(At(A(p_image)));
-Atbhat = fft2(At(b));
+AtAhat = fftn(At(A(p_image)));
+Atbhat = fftn(At(b));
 
 %Define derivative operator
 [D,Dt] = defDDt;

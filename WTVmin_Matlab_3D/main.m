@@ -69,7 +69,10 @@ Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
 siz = size(edgemask);
 edgemask_1 = ones(siz);
 [X_TV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask_1,lambda,A,At,res,Niter);
-figure(5); imagesc(abs(X_TV),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
+% Show a 2D slice of X_TV image
+X_TV_size = size(X_TV);
+X_TV_2d = X_TV(:,:,round(X_TV_size(3)/2));
+figure(5); imagesc(abs(X_TV_2d),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
 figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
 SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
 fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
