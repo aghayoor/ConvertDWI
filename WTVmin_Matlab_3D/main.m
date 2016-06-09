@@ -49,11 +49,6 @@ figure(4); imagesc(abs(X_IFFT_2d),[0,1]); colorbar; title('hi resolution, zero-p
 SNR_IFFT = -20*log10(norm(X_IFFT(:)-X0(:))/norm(X0(:)));
 fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
 
-
-
-%%%
-%%% commented out temporarly
-
 %% Run Standard TV algorithm (no edgemask) -- new implementation
 % lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 % Niter = 100;  %number of iterations (typically 20-100 for Fourier inversion)
@@ -68,20 +63,29 @@ lambda = 3e-2; %regularization parameter
 Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
 siz = size(edgemask);
 edgemask_1 = ones(siz);
+tic
 [X_TV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask_1,lambda,A,At,res,Niter);
+toc
 % Show a 2D slice of X_TV image
 X_TV_size = size(X_TV);
 X_TV_2d = X_TV(:,:,round(X_TV_size(3)/2));
 figure(5); imagesc(abs(X_TV_2d),[0,1]); colorbar; title('hi resolution, TV (no edgemask)');
 figure(6); plot(cost); xlabel('iteration'); ylabel('cost');
+
 SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
 fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
-%
-% %% Run New Weighted TV algorithm
-% lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-% Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
-% [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
-% figure(7); imagesc(abs(X_WTV),[0,1]); colorbar; title('hi resolution, WTV');
-% figure(8); plot(cost); xlabel('iteration'); ylabel('cost');
-% SNR_WTV = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
-% fprintf('WTV output SNR (Weighted TV algorithm) = %2.1f dB\n',SNR_WTV);
+
+%% Run New Weighted TV algorithm
+lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
+tic
+[X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
+toc
+% Show a 2D slice of X_WTV image
+X_WTV_size = size(X_WTV);
+X_WTV_2d = X_WTV(:,:,round(X_WTV_size(3)/2));
+figure(7); imagesc(abs(X_WTV_2d),[0,1]); colorbar; title('hi resolution, WTV');
+figure(8); plot(cost); xlabel('iteration'); ylabel('cost');
+
+SNR_WTV = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
+fprintf('WTV output SNR (Weighted TV algorithm) = %2.1f dB\n',SNR_WTV);
