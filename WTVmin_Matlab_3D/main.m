@@ -59,8 +59,8 @@ fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
 % fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
 
 %% Run Standard TV algorithm (no edgemask)
-lambda = 3e-2; %regularization parameter
-Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
+lambda = 1e-4; %regularization parameter
+Niter = 50;  %number of iterations (typically 500-1000 for Fourier inversion)
 siz = size(edgemask);
 edgemask_1 = ones(siz);
 tic
@@ -76,8 +76,8 @@ SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
 fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
 
 %% Run New Weighted TV algorithm
-lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
+lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+Niter = 50;  %number of iterations (typically 500-1000 for Fourier inversion)
 tic
 [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
 toc
