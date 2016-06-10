@@ -49,16 +49,16 @@ WDX = WD(X);
 P = zeros(size(WDX));
 
 %%%%%%
-GradX = D(X);
-x2=GradX(:,:,:,1).^2;
-y2=GradX(:,:,:,2).^2;
-z2=GradX(:,:,:,3).^2;
-Grad=sqrt(x2+y2+z2);
-Grad_size = size(Grad);
-Grad_2d = Grad(:,:,round(Grad_size(3)/2));
-figure(201); imagesc(Grad_2d); colorbar; title('Grad(x)');
-%figure(202);imagesc(Grad.*edgemask);colorbar;title('edgemask * Grad(x)')
-%figure(203);imhist(Grad);
+% GradX = D(X);
+% x2=GradX(:,:,:,1).^2;
+% y2=GradX(:,:,:,2).^2;
+% z2=GradX(:,:,:,3).^2;
+% Grad=sqrt(x2+y2+z2);
+% Grad_size = size(Grad);
+% Grad_2d = Grad(:,:,round(Grad_size(3)/2));
+% figure(201); imagesc(Grad_2d); colorbar; title('Grad(x)');
+% %%%figure(202);imagesc(Grad.*edgemask);colorbar;title('edgemask * Grad(x)')
+% %%%figure(203);imhist(Grad);
 %%%%%%
 
 lambda2 = lambda/2;
@@ -66,8 +66,7 @@ gamma = 0.35*(1/lambda2);
 
 L = sqrt(8);
 tau = 1/L;
-sigma = 1/((L^2)*tau); 
-theta = 1/sqrt(1+2*gamma*tau);
+sigma = 1/((L^2)*tau);
 
 prox = @(x,lambda,tau) ... 
     ifftn((tau*Atbhat + lambda*fftn(x))./(lambda + tau*AtAhat));
