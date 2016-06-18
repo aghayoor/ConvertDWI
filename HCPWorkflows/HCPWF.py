@@ -35,16 +35,13 @@ from __future__ import print_function
 
 def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE):
     print("Running the workflow ...")
-
-    sessionID = os.path.basename(os.path.dirname(DWI_scan))
-    subjectID = os.path.basename(os.path.dirname(os.path.dirname(DWI_scan)))
-    siteID = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(DWI_scan))))
+    sessionID = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(DWI_scan))))
 
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
     ####### Workflow ###################
-    WFname = 'DWIWorkflow_CACHE_' + sessionID
-    DWIWorkflow = pe.Workflow(name=WFname)
-    DWIWorkflow.base_dir = BASE_DIR
+    WFname = 'HCPWorkflow_CACHE_' + sessionID
+    HCPWorkflow = pe.Workflow(name=WFname)
+    HCPWorkflow.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWIVolume','T1Volume','T2Volume','LabelMapVolume']),
                          name='inputsSpec')
@@ -54,38 +51,38 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     inputsSpec.inputs.T2Volume = T2_scan
     inputsSpec.inputs.LabelMapVolume = labelMap_image
 
-    ## DWI_baseline: original HCP DWI image that is converted to NRRD, corrected and aligned to physical space of input structral MR images.
+    ## DWI_corrected_alignedSpace: input HCP DWI image that is converted to NRRD, corrected and aligned to physical space of input structral MR images.
     ## DWI_SR_NN: the high resolution DWI that is output of super-resolution reconstruction by Nearest Neighbor method.
     ## DWI_SR_IFFT: the high resolution DWI that is output of super-resolution reconstruction by zero-padded IFFT method.
     ## DWI_SR_TV: the high resolution DWI that is output of super-resolution reconstruction by Total Variation method.
     ## DWI_SR_WTV: the high resolution DWI that is output of super-resolution reconstruction by Weighted TV method.
 
-    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_original_corrected','DWI_baseline','DWIBrainMask'
-                                                              ,'DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
-                                                              ,'Baseline_ukfTracks','NN_ukfTracks','IFFT_ukfTracks','TV_ukfTracks','WTV_ukfTracks'
+    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace','DWIBrainMask'
+                                                              ,'MaximumGradientImage','EdgeMap'
+                                                              #,'DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
+                                                              #,'Baseline_ukfTracks','NN_ukfTracks','IFFT_ukfTracks','TV_ukfTracks','WTV_ukfTracks'
                                                               ]),
                           name='outputsSpec')
-'''
-    correctionWFname = 'CorrectionWorkflow_CACHE_' + sessionID
-    myCorrectionWF = CreateCorrectionWorkflow(correctionWFname)
 
-    measurementWFname = 'MeasurementWorkflow_CACHE_' + sessionID
-    myMeasurementWF = CreateMeasurementWorkflow(measurementWFname, LABELS_CONFIG_FILE)
+    ###
+    PreProcWFname = 'PreprocessingWorkflow_CACHE_' + sessionID
+    PreProcWF = CreatePreprocessingWorkFlow(PreProcWFname)
+    ###
 
-    # clone measurement WF to measure statistics from RISs estimated from non compressed sensing DWI scan
-    measurementWithoutCSWFname = 'MeasurementWFWithoutCS_CACHE_' + sessionID
-    MeasurementWFWithoutCS = myMeasurementWF.clone(name=measurementWithoutCSWFname)
+    #Connect up the components into an integrated workflow
+    HCPWorkflow.connect([(inputsSpec,PreProcWF,[('DWIVolume','inputsSpec.DWIVolume'),
+                                                ('T1Volume','inputsSpec.T1Volume'),
+                                                ('T2Volume','inputsSpec.T2Volume'),
+                                                ('LabelMapVolume','inputsSpec.LabelMapVolume'),
+                                               ]),
+                         (PreProcWF, outputsSpec, [('outputsSpec.DWI_corrected_originalSpace','DWI_corrected_originalSpace'),
+                                                   ('outputsSpec.DWI_corrected_alignedSpace','DWI_corrected_alignedSpace'),
+                                                   ('outputsSpec.DWIBrainMask','DWIBrainMask'),
+                                                   ('outputsSpec.MaximumGradientImage','MaximumGradientImage'),
+                                                   ('outputsSpec.EdgeMap','EdgeMap')
+                                                  ])
+                         ])
 
-    #Connect up the components into an integrated workflow.
-    DWIWorkflow.connect([(inputsSpec,myCorrectionWF,[('T2Volume','inputsSpec.T2Volume'),
-                                           ('DWIVolume','inputsSpec.DWIVolume'),
-                                           ('LabelMapVolume','inputsSpec.LabelMapVolume'),
-                                           ]),
-                         (myCorrectionWF, myCSWF,[('outputsSpec.CorrectedDWI_in_T2Space','inputsSpec.DWI_Corrected_Aligned'),
-                                                ('outputsSpec.DWIBrainMask','inputsSpec.DWIBrainMask'),
-                                                ])
-                       ])
-'''
     ## Write all outputs with DataSink
     DWIDataSink = pe.Node(interface=nio.DataSink(), name='DWIDataSink')
     DWIDataSink.overwrite = True
@@ -93,12 +90,14 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     #DWIDataSink.inputs.substitutions = []
 
     # Outputs (directory)
-    DWIWorkflow.connect(outputsSpec, 'DWI_original_corrected', DWIDataSink, 'Outputs.@DWI_original_corrected')
-    DWIWorkflow.connect(outputsSpec, 'DWI_baseline', DWIDataSink, 'Outputs.@DWI_baseline')
-    DWIWorkflow.connect(outputsSpec, 'DWIBrainMask', DWIDataSink, 'Outputs.@DWIBrainMask')
+    HCPWorkflow.connect(outputsSpec, 'DWI_corrected_originalSpace', DWIDataSink, 'Outputs.@DWI_corrected_originalSpace')
+    HCPWorkflow.connect(outputsSpec, 'DWI_corrected_alignedSpace', DWIDataSink, 'Outputs.@DWI_corrected_alignedSpace')
+    HCPWorkflow.connect(outputsSpec, 'DWIBrainMask', DWIDataSink, 'Outputs.@DWIBrainMask')
+    HCPWorkflow.connect(outputsSpec, 'MaximumGradientImage', DWIDataSink, 'Outputs.@MaximumGradientImage')
+    HCPWorkflow.connect(outputsSpec, 'EdgeMap', DWIDataSink, 'Outputs.@EdgeMap')
 
-    DWIWorkflow.write_graph()
-    DWIWorkflow.run()
+    HCPWorkflow.write_graph()
+    HCPWorkflow.run()
 
 
 if __name__ == '__main__':
@@ -170,13 +169,9 @@ if __name__ == '__main__':
   import nipype.interfaces.matlab as matlab
   from nipype.interfaces.semtools import *
   #####################################################################################
-'''
-  from CorrectionWorkflow import CreateCorrectionWorkflow
-  from CSWorkflow import CreateCSWorkflow
-  from EstimationWorkflow import CreateEstimationWorkflow
-  from TractographyWorkflow import CreateTractographyWorkflow
-  from MeasurementWorkflow import CreateMeasurementWorkflow
-'''
+
+  from PreprocessingWorkflow import CreatePreprocessingWorkFlow
+
   exit = runMainWorkflow(DWISCAN, T1SCAN, T2SCAN, LabelMapImage, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE)
 
   sys.exit(exit)
