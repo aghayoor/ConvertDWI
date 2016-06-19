@@ -3,6 +3,7 @@
 ## This workflow runs the following preprocessing steps on input HCP DWI dataset:
 ## ...
 
+import os
 import nipype
 from nipype.interfaces import ants
 from nipype.interfaces.base import CommandLine, CommandLineInputSpec, TraitedSpec, File, Directory
@@ -16,6 +17,14 @@ from nipype.interfaces.semtools import *
 def CreatePreprocessingWorkFlow(WFname):
     ###### UTILITY FUNCTIONS #######
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/#
+    def FindBVecBVals(DWIVolume):
+        import os
+        assert os.path.exists(DWIVolume), "File not found: %s" % DWIVolume
+        DWIDIR = os.path.dirname(DWIVolume)
+        bvecs_fn = os.path.join(DWIDIR,'bvecs')
+        bvals_fn = os.path.join(DWIDIR,'bvals')
+        return [bvecs_fn, bvals_fn]
+
     def CorrectDC(inNrrdDWI, outNrrdDWI, useSingleShell):
         import os
         import numpy as np
@@ -116,10 +125,6 @@ def CreatePreprocessingWorkFlow(WFname):
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWIVolume','T1Volume','T2Volume','LabelMapVolume']),
                          name='inputsSpec')
-    inputsSpec.inputs.DWIVolume = DWI_scan
-    inputsSpec.inputs.T1Volume = T1_scan
-    inputsSpec.inputs.T2Volume = T2_scan
-    inputsSpec.inputs.LabelMapVolume = labelMap_image
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace',
                                                               'DWI_corrected_alignedSpace',
@@ -131,18 +136,20 @@ def CreatePreprocessingWorkFlow(WFname):
     ##
     ## STEP 1: Convert input DWI file from Nifti to Nrrd
     ##
-    DWIDIR = os.path.dirname(inputsSpec.inputs.DWIVolume)
-    bvecs_fn = os.path.join(DWIDIR,'bvecs')
-    bvals_fn = os.path.join(DWIDIR,'bvals')
+    FindBVecBVals = pe.Node(interface=Function(function = FindBVecBVals,
+                                               input_names=['DWIVolume'],
+                                               output_names=['bvecs_fn','bvals_fn']),
+                            name="FindBVecBVals")
+    PreProcWF.connect(inputsSpec,'DWIVolume',FindBVecBVals,'DWIVolume')
 
     dwiConvert = pe.Node(interface=DWIConvert(),name="DWIConvert")
     dwiConvert.inputs.conversionMode = 'FSLToNrrd'
-    dwiConvert.inputs.inputBVectors = bvecs_fn
-    dwiConvert.inputs.inputBValues = bvals_fn
     dwiConvert.inputs.allowLossyConversion = True # input data is float
     dwiConvert.inputs.transposeInputBVectors = True # bvecs are saved column-wise
     dwiConvert.inputs.outputVolume = 'DWI_data.nrrd'
     PreProcWF.connect(inputsSpec,'DWIVolume',dwiConvert,'inputVolume')
+    PreProcWF.connect(FindBVecBVals,'bvecs_fn',dwiConvert,'inputBVectors')
+    PreProcWF.connect(FindBVecBVals,'bvals_fn',dwiConvert,'inputBValues')
 
     ##
     ## STEP 2: Correct direction cosign so the output data is loaded with correct alignment in Slicer
