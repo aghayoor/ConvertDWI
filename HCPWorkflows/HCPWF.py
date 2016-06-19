@@ -9,7 +9,7 @@
 
 """
 HCPWF.py
-==============
+========
 
 The purpose of this pipeline is to complete all the pre-processing, super-resolution reconstruction and evaluation steps on Human Connectome Project DWI datasets. The main inputs to this pipeline are input DWI subject from HCP dataset and post processing structural MRIs and brain labelmap from BRAINSAutoWorkup (BAW).
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
   assert os.path.exists(DWISCAN), "Input DWI scan is not found: %s" % DWISCAN
 
   T1SCAN = argv['--inputT1Scan']
-  assert os.path.exists(T2SCAN), "Input T1 scan is not found: %s" % T1SCAN
+  assert os.path.exists(T1SCAN), "Input T1 scan is not found: %s" % T1SCAN
 
   T2SCAN = argv['--inputT2Scan']
   assert os.path.exists(T2SCAN), "Input T2 scan is not found: %s" % T2SCAN
