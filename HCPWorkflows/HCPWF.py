@@ -87,7 +87,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     DWIDataSink = pe.Node(interface=nio.DataSink(), name='DWIDataSink')
     DWIDataSink.overwrite = True
     DWIDataSink.inputs.base_directory = dataSink_DIR
-    #DWIDataSink.inputs.substitutions = []
+    DWIDataSink.inputs.substitutions = [('Outputs/_ResampleToAlignedDWIResolution2/','Outputs/')]
 
     # Outputs (directory)
     HCPWorkflow.connect(outputsSpec, 'DWI_corrected_originalSpace', DWIDataSink, 'Outputs.@DWI_corrected_originalSpace')
