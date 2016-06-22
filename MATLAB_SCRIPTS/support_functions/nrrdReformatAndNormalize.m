@@ -52,13 +52,14 @@ function [rotatedGradientDWI, voxelLatticeToAnatomicalSpace ] = nrrdReformatAndN
   %XXXXXXXXXXXXX
 
   % Normalize DWI components between zero and one
+  DWIIntensityData = double(rotatedGradientDWI.data);
   numGradientDirs = size(rotatedGradientDWI.gradientdirections,1);
   for c=1:numGradientDirs
-      data_component_3D = rotatedGradientDWI.data(:,:,:,c);
+      data_component_3D = DWIIntensityData(:,:,:,c);
       data_component_3D = NormalizeDataComponent(data_component_3D);
-      rotatedGradientDWI.data(:,:,:,c) = data_component_3D;
+      DWIIntensityData(:,:,:,c) = data_component_3D;
   end
-
+  rotatedGradientDWI.data = DWIIntensityData;
 end
 
 function [normArr] = NormalizeDataComponent(arr)
