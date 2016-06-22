@@ -1,3 +1,14 @@
+#ignore external sources
+SuperBuild/ExternalSources/
+ExternalSources/
+
+# Mex files are compiled to source tree for convenience.
+*.mex*
+
+# Editor save files
+*~
+*.swp
+
 # Compiled Object files
 *.slo
 *.lo
