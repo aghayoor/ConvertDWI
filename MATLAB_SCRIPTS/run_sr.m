@@ -14,24 +14,24 @@
 % Ali Ghayoor, Hans J. Johnson, Greg Ongie, University of Iowa, June 2016
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function run_sr(input_dwi_fn, input_mask_fn, output_dwi_dir)
+function run_sr(input_dwi_fn, input_edgemap_fn, output_dwi_dir)
     
 % Add main MATLAB_SCRIPTS code tree
 thisFile = mfilename('fullpath');
 addpath(fullfile(fileparts(thisFile),'support_functions'));
 
-fprintf('Starting testCS:\n    input_dwi_fn: %s\n    input_mask_fn: %s\n    output_dwi_dir: %s\n',input_dwi_fn,input_mask_fn,output_dwi_dir
+fprintf('Starting testCS:\n    input_dwi_fn: %s\n    input_mask_fn: %s\n    output_dwi_dir: %s\n',input_dwi_fn,input_edgemap_fn,output_dwi_dir);
 
 % read input DWI file
 [ rawDWI ] = nrrdLoadWithMetadata(input_dwi_fn);
-%[ reformattedDWI, voxelLatticeToAnatomicalSpace ] = nrrdReformatAndNormalize(rawDWI);
-%[ dwi_struct, metric, counts ] = BalanceDWIReplications( reformattedDWI );
+[ reformattedDWI, voxelLatticeToAnatomicalSpace ] = nrrdReformatAndNormalize(rawDWI);
+[ dwi_struct, metric, counts ] = BalanceDWIReplications( reformattedDWI );
 
 % read input mask file
-in_mask = nrrdLoadWithMetadata(input_mask_fn);
-mask = in_mask.data ~= 0; % ???
+in_edgemap = nrrdLoadWithMetadata(input_edgemap_fn);
+edgemap = in_edgemap.data ~= 0; % ???
 
-[estimatedSignal] = doSRestimateWTV(dwi_struct, mask);
+[estimatedSignal] = doSRestimateWTV(dwi_struct, edgemap);
 
 nrrdWTVStrct = dwi_struct;
 nrrdWTVStrct.data = estimatedSignal;
