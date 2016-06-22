@@ -22,23 +22,23 @@ addpath(fullfile(fileparts(thisFile),'support_functions'));
 
 fprintf('Starting testCS:\n    input_dwi_fn: %s\n    input_mask_fn: %s\n    output_dwi_dir: %s\n',input_dwi_fn,input_mask_fn,output_dwi_dir
 
-
+% read input DWI file
 [ rawDWI ] = nrrdLoadWithMetadata(input_dwi_fn);
 %[ reformattedDWI, voxelLatticeToAnatomicalSpace ] = nrrdReformatAndNormalize(rawDWI);
 %[ dwi_struct, metric, counts ] = BalanceDWIReplications( reformattedDWI );
 
 % read input mask file
 in_mask = nrrdLoadWithMetadata(input_mask_fn);
-%mask = in_mask.data ~= 0;
+mask = in_mask.data ~= 0; % ???
 
-[estimatedSignal] = doSRestimate(dwi_struct, mask);
+[estimatedSignal] = doSRestimateWTV(dwi_struct, mask);
 
-nrrdStrct = dwi_struct;
-nrrdStrct.data = estimatedSignal;
+nrrdWTVStrct = dwi_struct;
+nrrdWTVStrct.data = estimatedSignal;
 %nrrdStrct.gradientdirections = estimatedGradients;
 
-fprintf('Writing files to disk...\n');
-
-nrrdSaveWithMetadata(output_dwi_fn,nrrdStrct)
+fprintf('Writing WTV SRR DWI file to disk...\n');
+output_WTV_dwi_fn = strcat(output_dwi_dir,'/DWI_WTV.nrrd');
+nrrdSaveWithMetadata(output_WTV_dwi_fn,nrrdWTVStrct)
 
 end
