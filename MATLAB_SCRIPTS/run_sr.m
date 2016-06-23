@@ -11,7 +11,7 @@
 %
 % Output: the recovered diffusion signal data files in nrrd format.
 %
-% Ali Ghayoor, Hans J. Johnson, Greg Ongie, University of Iowa, June 2016
+% Ali Ghayoor, Greg Ongie, Hans J. Johnson, University of Iowa, June 2016
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function run_sr(input_dwi_fn, input_edgemap_fn, output_dwi_dir)
@@ -24,25 +24,41 @@ fprintf('Starting testCS:\n    input_dwi_fn: %s\n    input_mask_fn: %s\n    outp
 
 % read input DWI file
 [ rawDWI ] = nrrdLoadWithMetadata(input_dwi_fn);
-[ reformattedDWI, voxelLatticeToAnatomicalSpace ] = nrrdReformatAndNormalize(rawDWI);
+[ reformattedDWI ] = nrrdReformatAndNormalize(rawDWI);
 %[ dwi_struct, metric, counts ] = BalanceDWIReplications( reformattedDWI );
 
 % read input mask file
-%in_edgemap = nrrdLoadWithMetadata(input_edgemap_fn);
-%edgemap = in_edgemap.data ~= 0; % ???
+in_edgemap = nrrdLoadWithMetadata(input_edgemap_fn);
+edgemap = in_edgemap.data;
 
-%[estimatedSignal] = doSRestimateWTV(dwi_struct, edgemap);
+%%
+[estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimateWTV(reformattedDWI.data, edgemap);
 
-%nrrdWTVStrct = dwi_struct;
-%nrrdWTVStrct.data = estimatedSignal;
-%nrrdStrct.gradientdirections = estimatedGradients;
+%% Write output DWI_Baseline
+nrrdBaselineStrct = reformattedDWI; %normalized reformatted DWI data
+fprintf('Writing SRR DWI_Baseline file to disk...\n');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_Baseline.nrrd');
+nrrdSaveWithMetadata(output_dwi_fn,nrrdBaselineStrct);
 
+%% Write output DWI_IFFT
+nrrdIFFTStrct = reformattedDWI;
+nrrdIFFTStrct.data = estimatedIFFTsignal;
+fprintf('Writing SRR DWI_IFFT file to disk...\n');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_IFFT.nrrd');
+nrrdSaveWithMetadata(output_dwi_fn,nrrdIFFTStrct);
+
+%% Write output DWI_TV
+nrrdTVStrct = reformattedDWI;
+nrrdTVStrct.data = estimatedTVsignal;
+fprintf('Writing SRR DWI_TV file to disk...\n');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_TV.nrrd');
+nrrdSaveWithMetadata(output_dwi_fn,nrrdTVStrct);
+
+%% Write output DWI_WTV
 nrrdWTVStrct = reformattedDWI;
-anatomicalEstimatedGradients = ( voxelLatticeToAnatomicalSpace*reformattedDWI.gradientdirections' )';
-nrrdWTVStrct.gradientdirections = anatomicalEstimatedGradients;
-
-fprintf('Writing WTV SRR DWI file to disk...\n');
-output_WTV_dwi_fn = strcat(output_dwi_dir,'/DWI_WTV.nrrd');
-nrrdSaveWithMetadata(output_WTV_dwi_fn,nrrdWTVStrct)
+nrrdWTVStrct.data = estimatedWTVsignal;
+fprintf('Writing SRR DWI_WTV file to disk...\n');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_WTV.nrrd');
+nrrdSaveWithMetadata(output_dwi_fn,nrrdWTVStrct);
 
 end
