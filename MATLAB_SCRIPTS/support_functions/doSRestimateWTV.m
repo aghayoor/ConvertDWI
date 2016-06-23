@@ -22,6 +22,9 @@ estimatedIFFTsignal = zeros(size(DWIIntensityData));
 estimatedTVsignal = zeros(size(DWIIntensityData));
 estimatedWTVsignal = zeros(size(DWIIntensityData));
 
+%HACK
+numGrad=1;
+
 for c=1:numGrad
     X0 = DWIIntensityData(:,:,:,c);
     %%
@@ -38,7 +41,7 @@ for c=1:numGrad
     %% Zero-padded IFFT reconstruction
     X_IFFT = At(fftn(Xlow));
     estimatedIFFTsignal(:,:,:,c) = X_IFFT;
-    %% Run Standard TV algorithm (no edgemask)
+    %% Run Standard TV algorithm (no edgemap)
     lambda = 5e-4; %regularization parameter
     Niter = 25;  %number of iterations
     siz = size(edgemap);
@@ -48,7 +51,7 @@ for c=1:numGrad
     %% Run New Weighted TV algorithm
     lambda = 5e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
     Niter = 25;  %number of iterations
-    [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
+    [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemap,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
     estimatedWTVsignal(:,:,:,c) = X_WTV;
 end
 
