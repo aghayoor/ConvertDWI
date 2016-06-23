@@ -1,4 +1,4 @@
-function [estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( DWIIntensityData, edgemap )
+function [normalizedSignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( DWIIntensityData, edgemap )
 % param: DWIIntensityData - is the dwi 4D data that is cleaned and normalized
 % param: edgemap - a weight matrix derived from anatomical edge locations
 
@@ -10,6 +10,7 @@ assert( nx == mnx , 'Mask x size does not match DWI data size');
 assert( ny == mny , 'Mask y size does not match DWI data size');
 assert( nz == mnz , 'Mask z size does not match DWI data size');
 
+delete(gcp);
 parallel.defaultClusterProfile('local');
 num_slots = getenv('NSLOTS');
 if( num_slots )
@@ -18,15 +19,20 @@ else
   poolobj = parpool(4);
 end
 
-estimatedIFFTsignal = zeros(size(DWIIntensityData));
-estimatedTVsignal = zeros(size(DWIIntensityData));
-estimatedWTVsignal = zeros(size(DWIIntensityData));
+normalizedSignal = single(zeros(size(DWIIntensityData)));
+estimatedIFFTsignal = single(zeros(size(DWIIntensityData)));
+estimatedTVsignal = single(zeros(size(DWIIntensityData)));
+estimatedWTVsignal = single(zeros(size(DWIIntensityData)));
 
 %HACK
 %numGrad=1;
 
 for c=1:numGrad
-    X0 = DWIIntensityData(:,:,:,c);
+    % Normalize data
+    data_component_3D = DWIIntensityData(:,:,:,c);
+    normalizedSignal(:,:,:,c) = NormalizeDataComponent(data_component_3D);
+    %%
+    X0 = normalizedSignal(:,:,:,c);
     %%
     m = fftn(X0);       %m=fourier data
     inres = size(m);
@@ -57,4 +63,14 @@ end
 
 delete(poolobj)
 
+end
+
+function [normArr] = NormalizeDataComponent(arr)
+  % This function normalizes a 3D matrix between zero and one.
+  newMax = single(1);
+  newMin = single(0);
+  oldMax = single(max(arr(:)));
+  oldMin = single(min(arr(:)));
+  f = (newMax-newMin)/(oldMax-oldMin);
+  normArr = (single(arr)-oldMin)*f+newMin;
 end

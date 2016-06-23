@@ -15,7 +15,7 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function run_sr(input_dwi_fn, input_edgemap_fn, output_dwi_dir)
-    
+
 % Add main MATLAB_SCRIPTS code tree
 thisFile = mfilename('fullpath');
 addpath(fullfile(fileparts(thisFile),'support_functions'));
@@ -24,7 +24,7 @@ fprintf('Starting testCS:\n    input_dwi_fn: %s\n    input_mask_fn: %s\n    outp
 
 % read input DWI file
 [ rawDWI ] = nrrdLoadWithMetadata(input_dwi_fn);
-[ reformattedDWI ] = nrrdReformatAndNormalize(rawDWI);
+[ reformattedDWI ] = nrrdReformat(rawDWI);
 
 % read input mask file
 in_edgemap = nrrdLoadWithMetadata(input_edgemap_fn);
@@ -32,11 +32,13 @@ edgemap = in_edgemap.data;
 
 %%
 tic
-[estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI.data, edgemap);
+[normalizedSignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI.data, edgemap);
 toc
 
 %% Write output DWI_Baseline
-nrrdBaselineStrct = reformattedDWI; %normalized reformatted DWI data
+% normalized reformatted DWI data
+nrrdBaselineStrct = reformattedDWI;
+nrrdBaselineStrct.data = normalizedSignal;
 fprintf('Writing SRR DWI_Baseline file to disk...\n');
 output_dwi_fn = strcat(output_dwi_dir,'/DWI_Baseline.nrrd');
 nrrdSaveWithMetadata(output_dwi_fn,nrrdBaselineStrct);

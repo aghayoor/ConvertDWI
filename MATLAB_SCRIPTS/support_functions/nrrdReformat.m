@@ -1,4 +1,4 @@
-function [reformattedDWI] = nrrdReformatAndNormalize(rawDWI)
+function [reformattedDWI] = nrrdReformat(rawDWI)
  %  This function will review parameters from a dwi struct to ensure
  %  that all necessary information is provided, inject "resonable defaults" for missing
  %  values, and permute the data into a canonical organization for subsequent
@@ -41,29 +41,4 @@ function [reformattedDWI] = nrrdReformatAndNormalize(rawDWI)
   reformattedDWI.centerings = reformattedDWI.centerings(order);
   reformattedDWI.kinds = reformattedDWI.kinds(order);
   %XXXXXXXXXXXXX
-
-  %XXXXXXXXXXXXX
-  % Normalize DWI components between zero and one
-  DWIIntensityData = single(reformattedDWI.data);
-  numGradientDirs = size(reformattedDWI.gradientdirections,1);
-  for c=1:numGradientDirs
-      data_component_3D = DWIIntensityData(:,:,:,c);
-      data_component_3D = NormalizeDataComponent(data_component_3D);
-      DWIIntensityData(:,:,:,c) = data_component_3D;
-  end
-  %remove negative values
-  DWIIntensityData(DWIIntensityData<0)=eps;
-  %
-  reformattedDWI.data = DWIIntensityData;
-  %XXXXXXXXXXXXX
-end
-
-function [normArr] = NormalizeDataComponent(arr)
-  % This function normalizes a 3D matrix between zero and one.
-  newMax = single(1);
-  newMin = single(0);
-  oldMax = single(max(arr(:)));
-  oldMin = single(min(arr(:)));
-  f = (newMax-newMin)/(oldMax-oldMin);
-  normArr = (arr-oldMin)*f+newMin;
 end
