@@ -1,4 +1,4 @@
-function [normalizedSignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( DWIIntensityData, edgemap )
+function [normalizedSignal,estimatedNNsignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( DWIIntensityData, edgemap )
 % param: DWIIntensityData - is the dwi 4D data that is cleaned and normalized
 % param: edgemap - a weight matrix derived from anatomical edge locations
 
@@ -19,10 +19,11 @@ else
   poolobj = parpool(4);
 end
 
-normalizedSignal = single(zeros(size(DWIIntensityData)));
-estimatedIFFTsignal = single(zeros(size(DWIIntensityData)));
-estimatedTVsignal = single(zeros(size(DWIIntensityData)));
-estimatedWTVsignal = single(zeros(size(DWIIntensityData)));
+normalizedSignal = single(zeros(size(DWIIntensityData))); % high-res image normalized between 0 and 1
+estimatedNNsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Nearest-Neighbor interpolation
+estimatedIFFTsignal = single(zeros(size(DWIIntensityData))); % reconstructed by zero-padded IFFT
+estimatedTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Total Variation
+estimatedWTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Weighted Total Variation
 
 %HACK
 %numGrad=1;
@@ -39,11 +40,14 @@ for c=1:numGrad
     k = get_kspace_inds( inres ); %k=fourier indices
     %% Define Fourier Projection Operators
     res = inres; %output resolution
-    lores = round(inres/2); %input lower resolution (use odd numbers)
+    lores = round(inres/2); %input lower resolution
     ind_samples = get_lowpass_inds(k,lores);
     [A,At] = defAAt_fourier(ind_samples, res); %Define function handles for fourier projection operators
     b = A(X0);       %low-resolution fourier samples
     Xlow = ifftn(reshape(b,lores));
+    %% Nearest-Neighbor reconstruction
+    X_NN = nearestNeigborInterp(Xlow,res);
+    estimatedNNsignal(:,:,:,c) = X_NN;
     %% Zero-padded IFFT reconstruction
     X_IFFT = At(fftn(Xlow));
     estimatedIFFTsignal(:,:,:,c) = X_IFFT;

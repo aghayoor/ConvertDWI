@@ -32,7 +32,7 @@ edgemap = in_edgemap.data;
 
 %%
 tic
-[normalizedSignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI.data, edgemap);
+[normalizedSignal,estimatedNNsignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI.data, edgemap);
 toc
 
 %% Write output DWI_Baseline
@@ -42,6 +42,13 @@ nrrdBaselineStrct.data = normalizedSignal;
 fprintf('Writing SRR DWI_Baseline file to disk...\n');
 output_dwi_fn = strcat(output_dwi_dir,'/DWI_Baseline.nrrd');
 nrrdSaveWithMetadata(output_dwi_fn,nrrdBaselineStrct);
+
+%% Write output DWI_NN
+nrrdNNStrct = reformattedDWI;
+nrrdNNStrct.data = estimatedNNsignal;
+fprintf('Writing SRR DWI_NN file to disk...\n');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_NN.nrrd');
+nrrdSaveWithMetadata(output_dwi_fn,nrrdNNStrct);
 
 %% Write output DWI_IFFT
 nrrdIFFTStrct = reformattedDWI;
