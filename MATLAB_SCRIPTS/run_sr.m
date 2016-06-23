@@ -25,14 +25,15 @@ fprintf('Starting testCS:\n    input_dwi_fn: %s\n    input_mask_fn: %s\n    outp
 % read input DWI file
 [ rawDWI ] = nrrdLoadWithMetadata(input_dwi_fn);
 [ reformattedDWI ] = nrrdReformatAndNormalize(rawDWI);
-%[ dwi_struct, metric, counts ] = BalanceDWIReplications( reformattedDWI );
 
 % read input mask file
 in_edgemap = nrrdLoadWithMetadata(input_edgemap_fn);
 edgemap = in_edgemap.data;
 
 %%
-[estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimateWTV(reformattedDWI.data, edgemap);
+tic
+[estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI.data, edgemap);
+toc
 
 %% Write output DWI_Baseline
 nrrdBaselineStrct = reformattedDWI; %normalized reformatted DWI data

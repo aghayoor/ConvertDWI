@@ -1,4 +1,4 @@
-function [estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimateWTV( DWIIntensityData, edgemap )
+function [estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( DWIIntensityData, edgemap )
 % param: DWIIntensityData - is the dwi 4D data that is cleaned and normalized
 % param: edgemap - a weight matrix derived from anatomical edge locations
 
@@ -23,7 +23,7 @@ estimatedTVsignal = zeros(size(DWIIntensityData));
 estimatedWTVsignal = zeros(size(DWIIntensityData));
 
 %HACK
-numGrad=1;
+%numGrad=1;
 
 for c=1:numGrad
     X0 = DWIIntensityData(:,:,:,c);
