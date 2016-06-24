@@ -47,28 +47,28 @@ nrrdSaveWithMetadata(output_dwi_fn,nrrdBaselineStrct);
 nrrdNNStrct = reformattedDWI;
 nrrdNNStrct.data = estimatedNNsignal;
 fprintf('Writing SRR DWI_NN file to disk...\n');
-output_dwi_fn = strcat(output_dwi_dir,'/DWI_NN.nrrd');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_SR_NN.nrrd');
 nrrdSaveWithMetadata(output_dwi_fn,nrrdNNStrct);
 
 %% Write output DWI_IFFT
 nrrdIFFTStrct = reformattedDWI;
 nrrdIFFTStrct.data = estimatedIFFTsignal;
 fprintf('Writing SRR DWI_IFFT file to disk...\n');
-output_dwi_fn = strcat(output_dwi_dir,'/DWI_IFFT.nrrd');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_SR_IFFT.nrrd');
 nrrdSaveWithMetadata(output_dwi_fn,nrrdIFFTStrct);
 
 %% Write output DWI_TV
 nrrdTVStrct = reformattedDWI;
 nrrdTVStrct.data = estimatedTVsignal;
 fprintf('Writing SRR DWI_TV file to disk...\n');
-output_dwi_fn = strcat(output_dwi_dir,'/DWI_TV.nrrd');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_SR_TV.nrrd');
 nrrdSaveWithMetadata(output_dwi_fn,nrrdTVStrct);
 
 %% Write output DWI_WTV
 nrrdWTVStrct = reformattedDWI;
 nrrdWTVStrct.data = estimatedWTVsignal;
 fprintf('Writing SRR DWI_WTV file to disk...\n');
-output_dwi_fn = strcat(output_dwi_dir,'/DWI_WTV.nrrd');
+output_dwi_fn = strcat(output_dwi_dir,'/DWI_SR_WTV.nrrd');
 nrrdSaveWithMetadata(output_dwi_fn,nrrdWTVStrct);
 
 end
