@@ -51,7 +51,10 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     inputsSpec.inputs.T2Volume = T2_scan
     inputsSpec.inputs.LabelMapVolume = labelMap_image
 
-    ## DWI_corrected_alignedSpace: input HCP DWI image that is converted to NRRD, corrected and aligned to physical space of input structral MR images.
+    ## DWI_corrected_alignedSpace: input HCP DWI image that is converted to NRRD,
+    #                              corrected and aligned to physical space of input structral MR images.
+    ## DWI_Baseline: is the corrected aligned DWI image that is refactored to be volume interleaved,
+    #                and the intensity content of each component is normalized between zero and one.
     ## DWI_SR_NN: the high resolution DWI that is output of super-resolution reconstruction by Nearest Neighbor method.
     ## DWI_SR_IFFT: the high resolution DWI that is output of super-resolution reconstruction by zero-padded IFFT method.
     ## DWI_SR_TV: the high resolution DWI that is output of super-resolution reconstruction by Total Variation method.
@@ -59,14 +62,17 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace','DWIBrainMask'
                                                               ,'MaximumGradientImage','EdgeMap'
-                                                              #,'DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
-                                                              #,'Baseline_ukfTracks','NN_ukfTracks','IFFT_ukfTracks','TV_ukfTracks','WTV_ukfTracks'
+                                                              ,'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
+                                                            #,'Baseline_ukfTracks','NN_ukfTracks','IFFT_ukfTracks','TV_ukfTracks','WTV_ukfTracks'
                                                               ]),
                           name='outputsSpec')
 
     ###
     PreProcWFname = 'PreprocessingWorkflow_CACHE_' + sessionID
     PreProcWF = CreatePreprocessingWorkFlow(PreProcWFname)
+
+    SRWFname = 'SuperResolutionWorkflow_CACHE_' + sessionID
+    SRWF = CreatePreprocessingWorkFlow(SRWFname, PYTHON_AUX_PATHS)
     ###
 
     #Connect up the components into an integrated workflow
@@ -80,7 +86,16 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                    ('outputsSpec.DWIBrainMask','DWIBrainMask'),
                                                    ('outputsSpec.MaximumGradientImage','MaximumGradientImage'),
                                                    ('outputsSpec.EdgeMap','EdgeMap')
-                                                  ])
+                                                  ]),
+                         (PreProcWF, SRWF, [('outputsSpec.DWI_corrected_alignedSpace','inputsSpec.DWIVolume'),
+                                            ('outputsSpec.EdgeMap','inputsSpec.EdgeMap')
+                                            ]),
+                         (SRWF, outputsSpec, [('outputsSpec.DWI_Baseline','DWI_Baseline'),
+                                              ('outputsSpec.DWI_SR_NN','DWI_SR_NN'),
+                                              ('outputsSpec.DWI_SR_IFFT','DWI_SR_IFFT'),
+                                              ('outputsSpec.DWI_SR_TV','DWI_SR_TV'),
+                                              ('outputsSpec.DWI_SR_WTV','DWI_SR_WTV')
+                                              ])
                          ])
 
     ## Write all outputs with DataSink
@@ -95,6 +110,11 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     HCPWorkflow.connect(outputsSpec, 'DWIBrainMask', DWIDataSink, 'Outputs.@DWIBrainMask')
     HCPWorkflow.connect(outputsSpec, 'MaximumGradientImage', DWIDataSink, 'Outputs.@MaximumGradientImage')
     HCPWorkflow.connect(outputsSpec, 'EdgeMap', DWIDataSink, 'Outputs.@EdgeMap')
+    HCPWorkflow.connect(outputsSpec, 'DWI_Baseline', DWIDataSink, 'Outputs.@DWI_Baseline')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_NN', DWIDataSink, 'Outputs.@DWI_SR_NN')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_IFFT', DWIDataSink, 'Outputs.@DWI_SR_IFFT')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_TV', DWIDataSink, 'Outputs.@DWI_SR_TV')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_WTV', DWIDataSink, 'Outputs.@DWI_SR_WTV')
 
     HCPWorkflow.write_graph()
     HCPWorkflow.run()
@@ -169,8 +189,8 @@ if __name__ == '__main__':
   import nipype.interfaces.matlab as matlab
   from nipype.interfaces.semtools import *
   #####################################################################################
-
   from PreprocessingWorkflow import CreatePreprocessingWorkFlow
+  from SuperResolutionWorkflow import CreateSuperResolutionWorkflow
 
   exit = runMainWorkflow(DWISCAN, T1SCAN, T2SCAN, LabelMapImage, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE)
 
