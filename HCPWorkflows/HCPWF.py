@@ -72,7 +72,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     PreProcWF = CreatePreprocessingWorkFlow(PreProcWFname)
 
     SRWFname = 'SuperResolutionWorkflow_CACHE_' + sessionID
-    SRWF = CreatePreprocessingWorkFlow(SRWFname, PYTHON_AUX_PATHS)
+    SRWF = CreateSuperResolutionWorkflow(SRWFname, PYTHON_AUX_PATHS)
     ###
 
     #Connect up the components into an integrated workflow

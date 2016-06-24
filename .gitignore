@@ -15,6 +15,9 @@ ExternalSources/
 *.o
 *.obj
 
+# Python compiled code
+*.pyc
+
 # Precompiled Headers
 *.gch
 *.pch
