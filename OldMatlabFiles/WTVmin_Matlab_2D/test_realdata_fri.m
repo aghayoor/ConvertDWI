@@ -8,28 +8,36 @@ load Data/dwib0_testdata;
 %load Data/dwig1_testdata;
 
 %% Load Weights
-%load Data/t2_edgemask_fri;   %edgemask estimated in stage one
+%%%load Data/t2_edgemask_fri;   %edgemask estimated in stage one
 load /scratch/TESTS/Aim2/MatlabFiles/edgemask_t1t2_1ByGMI.mat
-%load /scratch/TESTS/Aim2/MatlabFiles/edgemask_t1t2_1ByGMI_square.mat
+%%%load /scratch/TESTS/Aim2/MatlabFiles/edgemask_t1t2_1ByGMI_square.mat
+
+%%
+%%%%%%%%%%%%%%%
+% load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/dwi_b0.mat'
+% load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask.mat'
+%
+% inputImage_size = size(inputImage);
+% inputImage = inputImage(:,:,round(inputImage_size(3)/2));
+%
+% edgemask_size = size(edgemask);
+% edgemask = edgemask(:,:,round(edgemask_size(3)/2));
+%%%%%%%%%%%%%%%
 
 %%
 X0 = double(inputImage);
 m = fft2(X0);       %m=fourier data
 inres = size(m);
-indx = [0:((inres(2)/2)-1), -(inres(2)/2):-1];
-indy = [0:((inres(1)/2)-1), -(inres(1)/2):-1];
-[kx,ky] = meshgrid(indx,indy);
-k(1,:) = kx(:);     %k=fourier indices
-k(2,:) = ky(:);
+k = get_kspace_inds( inres ); %k=fourier indices
 
 figure(1); imagesc(abs(X0),[0,1]); colorbar; title('ground truth');
 figure(2); imshow(edgemask,[0 1]); title('spatial weights image');
 
 %% Define Fourier Projection Operators
-res = [256,256]; %output resolution
-lores = [127,127]; %input resolution (use odd numbers)
-%lores = [63,63];
-ind_samples = find((abs(k(1,:)) <= (lores(2)-1)/2 & (abs(k(2,:)) <= (lores(1)-1)/2))); %Low-pass Fourier indices
+res = inres; %output resolution
+lores = round(inres/2); %input lower resolution
+
+ind_samples = get_lowpass_inds(k,lores);
 [A,At] = defAAt_fourier(ind_samples, res); %Define function handles for fourier projection operators
 b = A(X0);       %low-resolution fourier samples
 Xlow = ifft2(reshape(b,lores));
