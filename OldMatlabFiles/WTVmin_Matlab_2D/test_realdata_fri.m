@@ -1,3 +1,5 @@
+clear all
+close all
 %
 % Test of Weighted TV algorithm for super-resolution reconstruction of 2D MRI data.
 %
@@ -21,7 +23,7 @@ k(1,:) = kx(:);     %k=fourier indices
 k(2,:) = ky(:);
 
 figure(1); imagesc(abs(X0),[0,1]); colorbar; title('ground truth');
-figure(2); imshow(edgemask,[0 1]); title('FRI spatial weights image');
+figure(2); imshow(edgemask,[0 1]); title('spatial weights image');
 
 %% Define Fourier Projection Operators
 res = [256,256]; %output resolution
@@ -49,7 +51,7 @@ fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
 % fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
 
 %% Run Standard TV algorithm (no edgemask)
-lambda = 3e-2; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+lambda = 8e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 200;  %number of iterations (typically 20-100 for Fourier inversion)
 siz = size(edgemask);
 edgemask_1 = ones(siz);
@@ -83,8 +85,8 @@ imshow(abs(X_TV),[0 1]); title('standard TV'); xlabel(labelTV);
 subplot(2,4,4);
 imshow(abs(X_WTV),[0 1]); title('weighted TV'); xlabel(labelWTV);
 subplot(2,4,5);
-%imagesc(abs(edgemask),[0 1]); title('spatial weights image'); axis off; axis image;
-imagesc(abs(Xlow)); title('low-resolution input image'); axis off; axis image;
+imagesc(abs(edgemask),[0 1]); title('spatial weights image'); axis off; axis image;
+%imagesc(abs(Xlow)); title('low-resolution input image'); axis off; axis image;
 subplot(2,4,6);
 imagesc(abs(X_IFFT-X0),[0 0.05]); title('IFFT error x 20');  axis off; axis image;
 subplot(2,4,7);
