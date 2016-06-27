@@ -1,8 +1,8 @@
 clear all
 close all
 
-load 'dwi_b0.mat'
-load 'edgemask.mat'
+load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/dwi_b0.mat'
+load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask.mat'
 
 X0 = double(inputImage);
 X0_size = size(X0);
@@ -15,7 +15,7 @@ edgemask_2d = edgemask(:,:,round(edgemask_size(3)/2)); % make edgemask 2D %%%%%%
 
 figure(1); imagesc(abs(X0_2d),[0,1]); colorbar; title('ground truth');
 %figure(1); imshow(X0_2d,[0,1]); title('ground truth');
-figure(2); imagesc(edgemask_2d,[0,0.1]); colorbar; title('spatial weights image');
+figure(2); imagesc(edgemask_2d,[0,1]); colorbar; title('spatial weights image');
 %figure(2); imshow(edgemask_2d,[0 0.1]); title('spatial weights image');
 
 %%
@@ -89,3 +89,27 @@ figure(8); plot(cost); xlabel('iteration'); ylabel('cost');
 
 SNR_WTV = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
 fprintf('WTV output SNR (Weighted TV algorithm) = %2.1f dB\n',SNR_WTV);
+
+%% Comparison figure
+labelIFFT = sprintf('SNR=%6.1f',SNR_IFFT);
+labelTV   = sprintf('SNR=%6.1f',SNR_TV);
+labelWTV  = sprintf('SNR=%6.1f',SNR_WTV);
+
+figure(100);
+subplot(2,4,1);
+imshow(abs(X0_2d),[0 1]); title('baseline image'); axis image;
+subplot(2,4,2);
+imshow(abs(X_IFFT_2d),[0 1]); title('zero-padded IFFT'); xlabel(labelIFFT);
+subplot(2,4,3);
+imshow(abs(X_TV_2d),[0 1]); title('standard TV'); xlabel(labelTV);
+subplot(2,4,4);
+imshow(abs(X_WTV_2d),[0 1]); title('weighted TV'); xlabel(labelWTV);
+subplot(2,4,5);
+imagesc(abs(edgemask_2d),[0 1]); title('spatial weights image'); axis off; axis image;
+%imagesc(abs(Xlow_2d)); title('low-resolution input image'); axis off; axis image;
+subplot(2,4,6);
+imagesc(abs(X_IFFT_2d-X0_2d),[0 0.05]); title('IFFT error x 20');  axis off; axis image;
+subplot(2,4,7);
+imagesc(abs(X_TV_2d-X0_2d),[0 0.05]); title('TV error x 20');  axis off; axis image;
+subplot(2,4,8);
+imagesc(abs(X_WTV_2d-X0_2d),[0 0.05]); title('WTV error x 20');  axis off; axis image;
