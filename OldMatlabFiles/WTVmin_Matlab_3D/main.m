@@ -2,7 +2,10 @@ clear all
 close all
 
 load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/dwi_b0.mat'
-load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask.mat'
+%load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/dwib0_traditionalway.mat'
+
+load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask_maskedQuantile.mat'
+%load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask_ipython.mat'
 
 X0 = double(inputImage);
 X0_size = size(X0);
@@ -59,7 +62,7 @@ fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
 % fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
 
 %% Run Standard TV algorithm (no edgemask)
-lambda = 5e-4; %regularization parameter
+lambda = 6e-4; %regularization parameter
 Niter = 25;  %number of iterations (typically 500-1000 for Fourier inversion)
 siz = size(edgemask);
 edgemask_1 = ones(siz);
@@ -76,7 +79,7 @@ SNR_TV = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
 fprintf('TV output SNR = %2.1f dB\n',SNR_TV);
 
 %% Run New Weighted TV algorithm
-lambda = 5e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+lambda = 6e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 25;  %number of iterations (typically 500-1000 for Fourier inversion)
 tic
 [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m

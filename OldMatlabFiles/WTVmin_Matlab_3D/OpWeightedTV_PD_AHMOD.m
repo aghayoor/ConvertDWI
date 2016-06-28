@@ -62,7 +62,7 @@ P = zeros(size(WDX));
 %%%%%%
 
 lambda2 = lambda/2;
-gamma = 0.35*(1/lambda2);
+gamma = 0.45*(1/lambda2);
 
 L = sqrt(8);
 tau = 1/L;
