@@ -1,8 +1,10 @@
+clear all
+close all
 % Test of Weighted TV algorithm for super-resolution reconstruction 
 % of MRI data.
 %% Load Data
-load testdata;   %m=fourier data, k=fourier indices
-load edgemask;   %edgemask estimated in stage one
+load Data/testdata;   %m=fourier data, k=fourier indices
+load Data/edgemask;   %edgemask estimated in stage one
 X0 = ifft2(m);   %high-resolution ground truth in spatial domain
 figure(1); imagesc(abs(X0),[0,1]); colorbar; title('ground truth');
 figure(2); imagesc(edgemask,[0,1]); colorbar; title('edge mask');
