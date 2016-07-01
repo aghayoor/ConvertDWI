@@ -1,8 +1,8 @@
 clear all
 close all
 
-load 'dwi_b0.mat'
-load 'edgemask_old.mat'
+load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/dwib0_testdata_3D.mat'
+load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask_t1t2_1ByGMI_3D.mat'
 
 X0 = double(inputImage);
 X0 = X0(:,:,70:80); %trim data to speed-up experiments
@@ -60,6 +60,7 @@ figure(7); imagesc(abs(X_TV_AL_2d-X0_2d),[0,0.2]); colorbar; title('TV_AL error 
 SNR_TV_AL = -20*log10(norm(X_TV_AL(:)-X0(:))/norm(X0(:)));
 fprintf('TV_AL (ADMM) output SNR = %2.1f dB\n',SNR_TV_AL);
 fprintf('TV_AL (ADMM) final cost %6.4f\n',cost(end));
+
 %% Run Standard TV algorithm (no edgemask) -- AHMOD from Chambolle & Pock
 lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
@@ -76,6 +77,7 @@ figure(10); imagesc(abs(X_TV_PD_2d-X0_2d),[0,0.2]); colorbar; title('TV_PD error
 SNR_TV_PD = -20*log10(norm(X_TV_PD(:)-X0(:))/norm(X0(:)));
 fprintf('TV_PD (AHMOD) output SNR = %2.1f dB\n',SNR_TV_PD);
 fprintf('TV_PD (AHMOD) final cost %6.4f\n',cost(end));
+
 %% Run Weighted TV algorithm - Primal-Dual algorithm -- AHMOD from Chambolle & Pock
 lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
@@ -92,6 +94,7 @@ figure(13); imagesc(abs(X_WTV_2d-X0_2d),[0,0.2]); colorbar; title('WTV error ima
 SNR_WTV = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
 fprintf('WTV (AHMOD) output SNR (Weighted TV algorithm) = %2.1f dB\n',SNR_WTV);
 fprintf('WTV (AHMOD) final cost %6.4f\n',cost(end));
+
 %% Run Weighted L2 algorithm - ADMM version
 lambda = 1e-4; %regularization parameter
 Niter = 100;  %number of iterations
