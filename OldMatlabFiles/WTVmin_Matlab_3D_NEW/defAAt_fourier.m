@@ -13,6 +13,6 @@ function [A,At] = defAAt_fourier(ind_samples,res)
     function out = At_fhp(z,ind_samples, res)
         p = zeros(res,'double');
         p(ind_samples) = z;
-        out = sqrt(res(1)*res(2)*res(3))*ifftn(p);
+        out = sqrt(res(1)*res(2)*res(3))*real(ifftn(p));
     end
 end

@@ -28,7 +28,7 @@ lores = round(inres/2); %input lower resolution (use odd numbers)
 ind_samples = get_lowpass_inds(k,lores);
 [A,At] = defAAt_fourier(ind_samples, res); %Define function handles for fourier projection operators
 b = A(X0);       %low-resolution fourier samples
-Xlow = ifftn(reshape(b,lores));
+Xlow = real(ifftn(reshape(b,lores)));
 % Show a 2D slice of low resolution image
 Xlow_size = size(Xlow);
 Xlow_2d = Xlow(:,:,round(Xlow_size(3)/2));
@@ -79,7 +79,7 @@ fprintf('TV_PD (AHMOD) output SNR = %2.1f dB\n',SNR_TV_PD);
 fprintf('TV_PD (AHMOD) final cost %6.4f\n',cost(end));
 
 %% Run Weighted TV algorithm - Primal-Dual algorithm -- AHMOD from Chambolle & Pock
-lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+lambda = 1e-3; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
 tic
 [X_WTV, cost] = OpWeightedTV_PD_AHMOD2(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m

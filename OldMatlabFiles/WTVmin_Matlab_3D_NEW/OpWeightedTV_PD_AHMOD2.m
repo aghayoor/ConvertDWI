@@ -71,7 +71,7 @@ tau = 0.02;
 sigma = 8/((L^2)*tau); 
 
 prox = @(x,lambda0,tau) ... 
-    ifftn((tau*lambda0*Atbhat + fftn(x))./(1 + tau*lambda0*AtAhat));
+    real(ifftn((tau*lambda0*Atbhat + fftn(x))./(1 + tau*lambda0*AtAhat)));
 
 % Begin primal-dual algorithm
 cost = zeros(1,Niter);

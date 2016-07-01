@@ -54,7 +54,7 @@ for i=1:Niter
     %Inversion step 
     F1 = fftn(2*Atb + lambda*beta*Dt(Z-G));
     F2 = lambda*beta*DtD + 2*AtA;
-    X = ifftn(F1./F2);
+    X = real(ifftn(F1./F2));
 
     %Calculate error        
     DX = D(X);

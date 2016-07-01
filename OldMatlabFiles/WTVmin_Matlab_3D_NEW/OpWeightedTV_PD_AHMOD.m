@@ -69,7 +69,7 @@ tau = 1/L;
 sigma = 1/((L^2)*tau);
 
 prox = @(x,lambda,tau) ... 
-    ifftn((tau*Atbhat + lambda*fftn(x))./(lambda + tau*AtAhat));
+    real(ifftn((tau*Atbhat + lambda*fftn(x))./(lambda + tau*AtAhat)));
 
 % Begin primal-dual AHMOD algorithm
 cost = zeros(1,Niter);

@@ -34,7 +34,7 @@ lores = round(inres/2); %input lower resolution (use odd numbers)
 ind_samples = get_lowpass_inds(k,lores);
 [A,At] = defAAt_fourier(ind_samples, res); %Define function handles for fourier projection operators
 b = A(X0);       %low-resolution fourier samples
-Xlow = ifftn(reshape(b,lores));
+Xlow = real(ifftn(reshape(b,lores)));
 % Show a 2D slice of low resolution image
 Xlow_size = size(Xlow);
 Xlow_2d = Xlow(:,:,round(Xlow_size(3)/2));

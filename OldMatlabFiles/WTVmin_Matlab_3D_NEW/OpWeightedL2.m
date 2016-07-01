@@ -12,14 +12,14 @@ function [X, cost, resvec] = OpWeightedL2(b,edgemask,lambda,A,At,res,iter,tol,ga
 %               model/measurement operator
 %          At = function handle representing the backwards model/
 %               the transpose of the measurment operator.
-%               (e.g. if A is a downsampling, At is a upsampling)                    
+%               (e.g. if A is a downsampling, At is a upsampling)
 %          b =  a vector of measurements; should match the
 %               dimensions of A(X)
 %          lambda = regularization parameter that balances data fidelity
 %               and smoothness. set lambda high for more smoothing.
 %          siz = output image size, e.g. siz = [512,512]
 %          Niter = is the number of iterations; should be ~500-1000
-%         
+%
 % Output:  X = high-resolution output image
 %          cost = array of cost function value vs. iteration
 %Define AtA fourier mask
@@ -38,25 +38,25 @@ L = zeros(size(DX));
 resvec = zeros(1,iter);
 cost = zeros(1,iter);
 for i = 1:iter
-    % Y subprob 
+    % Y subprob
     Z = gam*(DX+L);
     muinv = repmat((2*mu + gam).^(-1),[1,1,1,3]);
     Y = muinv.*Z;
 
     % X subprob
-    X = ifftn(fftn(2*Atb + lambda*gam*Dt(Y-L))./(2*AtAhat + lambda*gam*DtDhat));   
+    X = real(ifftn(fftn(2*Atb + lambda*gam*Dt(Y-L))./(2*AtAhat + lambda*gam*DtDhat)));
 
     % L update
     DX = D(X);
     residue = DX-Y;
     L = L + residue;
-    
+
     resvec(i) = norm(residue(:))/norm(Y(:));
     if (iter > 10) && (resvec(i) < tol)
         return;
     end
-    
-    %Calculate cost function      
+
+    %Calculate cost function
     WDX = repmat(sqrt(mu),[1,1,1,3]).*DX;
     diff = A(X)-b;
     cost(i) = norm(diff(:)).^2 + lambda*norm(WDX(:)).^2; %cost function
