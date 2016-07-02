@@ -1,4 +1,4 @@
-function [X, cost] = OpWeightedTV_PD_AHMOD2(b,edgemask,lambda,A,At,res,Niter)
+function [X, cost] = OpWeightedTV_PD_AHMOD2(b,edgemask,lambda,A,At,res,Niter,gam,Xinit)
 % OPWEIGHTEDTV_PD_AHMOD: Solves weighted TV regularized inverse problems with a
 % primal-dual scheme. Minimizes the cost function
 % X* = argmin_X ||A(X)-b||_2^2 + lambda ||W |D(X)| ||_1
@@ -12,20 +12,20 @@ function [X, cost] = OpWeightedTV_PD_AHMOD2(b,edgemask,lambda,A,At,res,Niter)
 %               model/measurement operator
 %          At = function handle representing the backwards model/
 %               the transpose of the measurment operator.
-%               (e.g. if A is a downsampling, At is a upsampling)                    
+%               (e.g. if A is a downsampling, At is a upsampling)
 %          b =  a vector of measurements; should match the
 %               dimensions of A(X)
 %          lambda = regularization parameter that balances data fidelity
 %               and smoothness. set lambda high for more smoothing.
 %          res = output image size, e.g. size = [512,512]
 %          Niter = is the number of iterations; should be ~500-1000
-%         
+%
 % Output:  X = high-resolution output image
 %          cost = array of cost function value vs. iteration
-%  
+%
 % Note this implementation is an adaptation of the AHMOD algorithm from:
-% Chambolle, A., & Pock, T. (2011). A first-order primal-dual algorithm for 
-%           convex problems with applications to imaging. 
+% Chambolle, A., & Pock, T. (2011). A first-order primal-dual algorithm for
+%           convex problems with applications to imaging.
 %           Journal of Mathematical Imaging and Vision, 40(1), 120-145.
 
 %Define AtA fourier mask
@@ -43,7 +43,7 @@ WDt = @(x) Dt(Wbig.*x);
 
 %Initialize variables
 Atb = At(b);
-X = Atb;
+X = Xinit;%real(Atb);
 Xhat = X;
 WDX = WD(X);
 P = zeros(size(WDX));
@@ -65,33 +65,33 @@ lambda0 = 2/lambda; %rescale lambda to give the equivalent problem in Chambolle 
 
 %AHMOD in Chambolle & Pock
 %with tweaked paramters
-gamma = 0.01*lambda0; %0.7*lambda0
+gamma = gam*lambda0; %0.7*lambda0
 L = sqrt(16);
 tau = 0.02;
-sigma = 8/((L^2)*tau); 
+sigma = 8/((L^2)*tau);
 
-prox = @(x,lambda0,tau) ... 
+prox = @(x,lambda0,tau) ...
     real(ifftn((tau*lambda0*Atbhat + fftn(x))./(1 + tau*lambda0*AtAhat)));
 
 % Begin primal-dual algorithm
 cost = zeros(1,Niter);
-for i=1:Niter    
+for i=1:Niter
     %Dual Step
-    P = projInfty(P + sigma*WD(Xhat));        
+    P = projInfty(P + sigma*WD(Xhat));
 
     %Primal Step
     Xold = X;
-    X = prox(X - tau*WDt(P),lambda0,tau);    
-    
+    X = prox(X - tau*WDt(P),lambda0,tau);
+
     %Update Step-sizes with AHMOD rules
-    theta = 1/sqrt(1+2*gamma*tau);          
+    theta = 1/sqrt(1+2*gamma*tau);
     tau = theta*tau;
     sigma = sigma/theta;
-    
+
     theta = 0;
-    Xhat = X+theta*(X-Xold);         
-    
-    %Calculate cost function      
+    Xhat = X+theta*(X-Xold);
+
+    %Calculate cost function
     WDX = WD(X);
     NWDX = sqrt(abs(WDX(:,:,:,1)).^2 + abs(WDX(:,:,:,2)).^2 + abs(WDX(:,:,:,3)).^2);
     diff = A(X)-b;

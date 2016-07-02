@@ -64,8 +64,10 @@ fprintf('TV_AL (ADMM) final cost %6.4f\n',cost(end));
 %% Run Standard TV algorithm (no edgemask) -- AHMOD from Chambolle & Pock
 lambda = 1e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
 Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
+gam = 0.01; %set in the range [0.01,1].
+Xinit = real(At(b)); %initialization
 tic
-[X_TV_PD, cost] = OpWeightedTV_PD_AHMOD2(b,ones(res),lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
+[X_TV_PD, cost] = OpWeightedTV_PD_AHMOD2(b,ones(res),lambda,A,At,res,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
 toc
 % Show a 2D slice of X_WTV image
 X_TV_PD_size = size(X_TV_PD);
@@ -79,10 +81,12 @@ fprintf('TV_PD (AHMOD) output SNR = %2.1f dB\n',SNR_TV_PD);
 fprintf('TV_PD (AHMOD) final cost %6.4f\n',cost(end));
 
 %% Run Weighted TV algorithm - Primal-Dual algorithm -- AHMOD from Chambolle & Pock
-lambda = 1e-3; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-Niter = 200;  %number of iterations (typically 500-1000 for Fourier inversion)
+lambda = 1e-3; %regularization parameter (typically in the range [1e-3,1], if original image scaled to [0,1])
+Niter = 500;  %number of iterations (typically 500-1000 for Fourier inversion)
+gam = 0.01; %set in the range [0.01,1].
+Xinit = real(At(b)); %initialization
 tic
-[X_WTV, cost] = OpWeightedTV_PD_AHMOD2(b,edgemask,lambda,A,At,res,Niter); %see comments inside OpWeightedTV_PD_AHMOD.m
+[X_WTV, cost] = OpWeightedTV_PD_AHMOD2(b,sqrt(edgemask),lambda,A,At,res,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
 toc
 % Show a 2D slice of X_WTV image
 X_WTV_size = size(X_WTV);
@@ -96,10 +100,10 @@ fprintf('WTV (AHMOD) output SNR (Weighted TV algorithm) = %2.1f dB\n',SNR_WTV);
 fprintf('WTV (AHMOD) final cost %6.4f\n',cost(end));
 
 %% Run Weighted L2 algorithm - ADMM version
-lambda = 1e-4; %regularization parameter
+lambda = 1e-3; %regularization parameter
 Niter = 100;  %number of iterations
-gam = 0.5;   %ADMM parameter, in range [0.1,10]
-tol = 1e-6;  %convergence tolerance
+gam = 1;   %ADMM parameter, in range [0.1,10]
+tol = 1e-8;  %convergence tolerance
 tic
 [X_WL2, cost] = OpWeightedL2(b,edgemask,lambda,A,At,res,Niter,tol,gam);
 toc
