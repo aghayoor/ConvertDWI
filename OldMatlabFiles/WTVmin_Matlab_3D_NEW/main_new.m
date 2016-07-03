@@ -5,11 +5,11 @@ load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/
 load '/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF/test_tune_parameters/matlabFiles/edgemask_t1t2_1ByGMI_3D.mat'
 
 X0 = double(inputImage);
-X0 = X0(:,:,70:80); %trim data to speed-up experiments
+%X0 = X0(:,:,70:80); %trim data to speed-up experiments
 X0_size = size(X0);
 X0_2d = X0(:,:,round(X0_size(3)/2)); % make input 2D %%%%%%%%%%%%%
 
-edgemask = edgemask(:,:,70:80); %trim data to speed-up experiments
+%edgemask = edgemask(:,:,70:80); %trim data to speed-up experiments
 edgemask_size = size(edgemask);
 edgemask_2d = edgemask(:,:,round(edgemask_size(3)/2)); % make edgemask 2D %%%%%%%%%%%%
 
@@ -39,7 +39,7 @@ X_IFFT = At(b);
 % Show a 2D slice of zero-padded IFFT image
 X_IFFT_size = size(X_IFFT);
 X_IFFT_2d = X_IFFT(:,:,round(X_IFFT_size(3)/2));
-figure(4); imagesc(abs(X_IFFT_2d)); colorbar; title('hi resolution, zero-padded IFFT');
+figure(4); imagesc(abs(X_IFFT_2d),[0,1]); colorbar; title('hi resolution, zero-padded IFFT');
 
 SNR_IFFT = -20*log10(norm(X_IFFT(:)-X0(:))/norm(X0(:)));
 fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
