@@ -56,6 +56,37 @@ def CreatePreprocessingWorkFlow(WFname):
         assert os.path.isfile(outNrrdDWIFilename), "Corrected Nrrd file is not found: %s" % outNrrdDWIFilename
         return outNrrdDWIFilename
 
+    def MaskDWI(inNrrdDWI, inputMask, outNrrdDWI):
+        import os
+        import numpy as np
+        import SimpleITK as sitk
+        from ReadWriteNrrdDWI import ReadNAMICDWIFromNrrd, WriteNAMICDWIToNrrd
+        assert os.path.exists(inNrrdDWI), "File not found: %s" % inNrrdDWI
+        assert os.path.exists(inputMask), "File not found: %s" % inputMask
+        mask_img = sitk.ReadImage(inputMask)
+        mask_data = sitk.GetArrayFromImage(mask_img)
+        dwi_data,dwi_header,bvecs,bvals,gradient_index = ReadNAMICDWIFromNrrd(inNrrdDWI)
+        if gradient_index != 0:
+           raise ValueError('Program expects a gradient index of zero for HCP data, but gradient index is {0}'.format(gradient_index))
+        numOfComponents = dwi_data.shape[gradient_index]
+        for idx in range(numOfComponents):
+            dwi_3d = dwi_data[idx,:,:,:]
+            '''
+            To convert the above numpy array to a b0 image, we need careful attention to the order of index and dimensions.
+            ITK's Image class does not have a bracket operator. It has a GetPixel which takes an ITK Index object as an argument,
+            which is an array ordered as (x,y,z). This is the convention that SimpleITK's Image class uses for the GetPixel method as well.
+            While in numpy, an array is indexed in the opposite order (z,y,x).
+            '''
+            dwi_3d = np.transpose(dwi_3d,(2, 1, 0))
+            dwi_3d = dwi_3d*mask_data
+            dwi_3d = np.transpose(dwi_3d,(2, 1, 0))
+            dwi_data[idx,:,:,:] = dwi_3d
+        outMaskedDWIFilename = os.path.join(os.getcwd(), outNrrdDWI)
+        # write corrected nrrd file to disk
+        WriteNAMICDWIToNrrd(outMaskedDWIFilename,dwi_data,bvecs,bvals,dwi_header)
+        assert os.path.isfile(outMaskedDWIFilename), "Masked DWI file is not found: %s" % outMaskedDWIFilename
+        return outMaskedDWIFilename
+
     # remove the skull from T1/T2 volume
     def ExtractBRAINFromHead(inputVolume, brainLabels):
         import os
@@ -116,6 +147,7 @@ def CreatePreprocessingWorkFlow(WFname):
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace',
                                                               'DWI_corrected_alignedSpace',
+                                                              'DWI_corrected_alignedSpace_masked',
                                                               'DWIBrainMask',
                                                               'StrippedT1_125',
                                                               'StrippedT2_125',
@@ -276,5 +308,17 @@ def CreatePreprocessingWorkFlow(WFname):
     #PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 2), GEM, 'inputMask') # input brain mask to calculate quantiles
     PreProcWF.connect(GEM, 'outputMaximumGradientImage', outputsSpec, 'MaximumGradientImage')
     PreProcWF.connect(GEM, 'outputEdgeMap', outputsSpec, 'EdgeMap')
+
+    ##
+    ## STEP 6: Create masked DWI image
+    ##
+    MaskDWINode = pe.Node(interface=Function(function = MaskDWI,
+                                               input_names=['inNrrdDWI','inputMask','outNrrdDWI'],
+                                               output_names=['outMaskedDWIFilename']),
+                            name="MaskDWINode")
+    MaskDWINode.inputs.outNrrdDWI = 'DWI_corrected_alignedSpace_masked.nrrd'
+    PreProcWF.connect(gtractResampleDWIInPlace_Trigid, 'outputVolume', MaskDWINode, 'inNrrdDWI')
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 2), MaskDWINode, 'inputMask')
+    PreProcWF.connect(MaskDWINode, 'outMaskedDWIFilename', outputsSpec, 'DWI_corrected_alignedSpace_masked')
 
     return PreProcWF
