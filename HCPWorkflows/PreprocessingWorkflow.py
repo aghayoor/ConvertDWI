@@ -76,9 +76,9 @@ def CreatePreprocessingWorkFlow(WFname):
         labelsMap = sitk.ReadImage(brainLabels)
         brain_mask = labelsMap>0
         ## dilate brain mask
-        dilateFilter = sitk.BinaryDilateImageFilter()
-        dilateFilter.SetKernelRadius(2)
-        brain_mask = dilateFilter.Execute( brain_mask )
+        #dilateFilter = sitk.BinaryDilateImageFilter()
+        #dilateFilter.SetKernelRadius(2)
+        #brain_mask = dilateFilter.Execute( brain_mask )
         ##
         if (headImage.GetSpacing() != brain_mask.GetSpacing()):
             headImage = LinearResampling(headImage,brain_mask)
