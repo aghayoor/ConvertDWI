@@ -98,30 +98,18 @@ def CreatePreprocessingWorkFlow(WFname):
         imagesList = [inputT1, inputT2, inputLabelMap]
         return imagesList
 
+    def MakeGenerateEdgeMapInputList(inputT1, inputT2):
+        imagesList = [inputT1, inputT2]
+        return imagesList
+
     # This function helps to pick desirable output from the output list
     def pickFromList(inlist,item):
         return inlist[item]
-
-    # This function computes the inverse of input maximumGradientImage
-    def CreateEdgeMap(inputVolume):
-        import os
-        import SimpleITK as sitk
-        assert os.path.exists(inputVolume), "File not found: %s" % inMGI
-        mgi = sitk.ReadImage(inputVolume)
-        mgi = sitk.Cast(mgi,sitk.sitkFloat32) + 1.0 # HACK: to avoid division by 0 -- remove later
-        div = sitk.DivideImageFilter()
-        edgeMap = div.Execute(1.0,mgi)
-        outputEdgeMapFile = os.path.realpath('EdgeMap.nrrd')
-        sitk.WriteImage(edgeMap, outputEdgeMapFile)
-        return outputEdgeMapFile
 
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
 
     PreProcWF = pe.Workflow(name=WFname)
-
-    #BASE_DIR = os.path.join('/scratch/TESTS/IpythonNotebook/20160615_HCPWF', '1_PreProcWF')
-    #PreProcWF.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWIVolume','T1Volume','T2Volume','LabelMapVolume']),
                          name='inputsSpec')
@@ -259,23 +247,28 @@ def CreatePreprocessingWorkFlow(WFname):
     ## STEP 5: Create EdgeMap from stripped_T1_125 and stripped_T1_125
     ##
 
-    # Step5_1: Generate MaximumGradientImage (TODO: Replace this function with the new one that uses brainmask)
-    MGI = pe.Node(interface=GenerateSummedGradientImage(),
-                  name="MaximumGradientImage")
+    # Step5_1: Make a list for input structral MR images
+    MakeGenerateEdgeMapInputListNode = pe.Node(Function(function=MakeGenerateEdgeMapInputList,
+                                                    input_names=['inputT1','inputT2'],
+                                                    output_names=['imagesList']),
+                                           name="MakeGenerateEdgeMapInputList")
     PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 0),
-                      MGI,'inputVolume1')
+                      MakeGenerateEdgeMapInputListNode,'inputT1')
     PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 1),
-                      MGI,'inputVolume2')
-    MGI.inputs.MaximumGradient = True
-    MGI.inputs.outputFileName = 'MaximumGradientImage.nrrd'
-    PreProcWF.connect(MGI, 'outputFileName', outputsSpec, 'MaximumGradientImage')
+                      MakeGenerateEdgeMapInputListNode,'inputT2')
 
-    # Step5_2: Create EdgeMap by computing the inverse of MaximumGradientImage
-    CreateEdgeMap = pe.Node(interface=Function(function = CreateEdgeMap,
-                                               input_names=['inputVolume'],
-                                               output_names=['outputEdgeMapFile']),
-                            name="CreateEdgeMap")
-    PreProcWF.connect(MGI, 'outputFileName', CreateEdgeMap, 'inputVolume')
-    PreProcWF.connect(CreateEdgeMap, 'outputEdgeMapFile', outputsSpec, 'EdgeMap')
+    # Step5_2: Generate EdgeMap
+    GEM = pe.Node(interface=GenerateEdgeMapImage(), name="EdgeMapImage")
+    PreProcWF.connect(MakeGenerateEdgeMapInputListNode,'imagesList',
+                      GEM,'inputMRVolumes')
+    GEM.inputs.minimumOutputRange = 1
+    GEM.inputs.maximumOutputRange = 255
+    GEM.inputs.lowerPercentileMatching = 0.5
+    GEM.inputs.upperPercentileMatching = 0.95
+    GEM.inputs.outputMaximumGradientImage = 'MaximumGradientImage.nrrd'
+    GEM.inputs.outputEdgeMap = 'EdgeMap.nrrd'
+    #PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 2), GEM, 'inputMask') # input brain mask to calculate quantiles
+    PreProcWF.connect(GEM, 'outputMaximumGradientImage', outputsSpec, 'MaximumGradientImage')
+    PreProcWF.connect(GEM, 'outputEdgeMap', outputsSpec, 'EdgeMap')
 
     return PreProcWF
