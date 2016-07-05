@@ -75,11 +75,11 @@ def CreatePreprocessingWorkFlow(WFname):
         headImage = sitk.ReadImage(inputVolume)
         labelsMap = sitk.ReadImage(brainLabels)
         brain_mask = labelsMap>0
-        # dilate brain mask
+        ## dilate brain mask
         dilateFilter = sitk.BinaryDilateImageFilter()
         dilateFilter.SetKernelRadius(2)
         brain_mask = dilateFilter.Execute( brain_mask )
-        #
+        ##
         if (headImage.GetSpacing() != brain_mask.GetSpacing()):
             headImage = LinearResampling(headImage,brain_mask)
         brainImage = sitk.Cast(headImage,sitk.sitkFloat32) * sitk.Cast(brain_mask,sitk.sitkFloat32)
@@ -117,6 +117,8 @@ def CreatePreprocessingWorkFlow(WFname):
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace',
                                                               'DWI_corrected_alignedSpace',
                                                               'DWIBrainMask',
+                                                              'StrippedT1_125',
+                                                              'StrippedT2_125',
                                                               'MaximumGradientImage',
                                                               'EdgeMap']),
                           name='outputsSpec')
@@ -240,6 +242,10 @@ def CreatePreprocessingWorkFlow(WFname):
     # warpTransform is identity
     PreProcWF.connect(gtractResampleDWIInPlace_Trigid,'outputResampledB0',ResampleToAlignedDWIResolution,'referenceVolume')
     PreProcWF.connect(MakeResamplerInFilesListNode,'imagesList',ResampleToAlignedDWIResolution,'inputVolume')
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 0),
+                      outputsSpec, 'StrippedT1_125')
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 1),
+                      outputsSpec, 'StrippedT2_125')
     PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 2),
                       outputsSpec, 'DWIBrainMask')
 
@@ -252,9 +258,9 @@ def CreatePreprocessingWorkFlow(WFname):
                                                     input_names=['inputT1','inputT2'],
                                                     output_names=['imagesList']),
                                            name="MakeGenerateEdgeMapInputList")
-    PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 0),
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 0),
                       MakeGenerateEdgeMapInputListNode,'inputT1')
-    PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 1),
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 1),
                       MakeGenerateEdgeMapInputListNode,'inputT2')
 
     # Step5_2: Generate EdgeMap
