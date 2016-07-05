@@ -10,7 +10,7 @@ assert( nx == mnx , 'Mask x size does not match DWI data size');
 assert( ny == mny , 'Mask y size does not match DWI data size');
 assert( nz == mnz , 'Mask z size does not match DWI data size');
 
-delete(gcp);
+delete(gcp)
 parallel.defaultClusterProfile('local');
 num_slots = getenv('NSLOTS');
 if( num_slots )
@@ -26,7 +26,7 @@ estimatedTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by To
 estimatedWTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Weighted Total Variation
 
 %HACK
-%numGrad=1;
+numGrad=1;
 
 for c=1:numGrad
     % Normalize data
