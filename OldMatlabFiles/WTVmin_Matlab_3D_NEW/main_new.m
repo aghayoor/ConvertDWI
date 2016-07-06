@@ -32,7 +32,13 @@ Xlow = real(ifftn(reshape(b,lores)));
 % Show a 2D slice of low resolution image
 Xlow_size = size(Xlow);
 Xlow_2d = Xlow(:,:,round(Xlow_size(3)/2));
-figure(3); imagesc(abs(Xlow_2d)); colorbar; title('low resolution input');
+%figure(3); imagesc(abs(Xlow_2d)); colorbar; title('low resolution input');
+
+%% Nearest-Neighbor reconstruction
+X_NN = nearestNeigborInterp(Xlow,res);
+X_NN_size = size(X_NN);
+X_NN_2d = X_NN(:,:,round(X_NN_size(3)/2));
+figure(3); imagesc(abs(X_NN_2d),[0,1]); colorbar; title('hi resolution, nearest neigbour');
 
 %% Zero-padded IFFT reconstruction
 X_IFFT = At(b);
