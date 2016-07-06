@@ -35,10 +35,13 @@ Xlow_2d = Xlow(:,:,round(Xlow_size(3)/2));
 %figure(3); imagesc(abs(Xlow_2d)); colorbar; title('low resolution input');
 
 %% Nearest-Neighbor reconstruction
-X_NN = nearestNeigborInterp(Xlow,res);
+X_NN = nearestNeigborInterp(NormalizeDataComponent(abs(Xlow)),res);
 X_NN_size = size(X_NN);
 X_NN_2d = X_NN(:,:,round(X_NN_size(3)/2));
 figure(3); imagesc(abs(X_NN_2d),[0,1]); colorbar; title('hi resolution, nearest neigbour');
+
+SNR_NN = -20*log10(norm(X_NN(:)-X0(:))/norm(X0(:)));
+fprintf('Nearest-Neigbour output SNR = %2.1f dB\n',SNR_NN);
 
 %% Zero-padded IFFT reconstruction
 X_IFFT = At(b);
