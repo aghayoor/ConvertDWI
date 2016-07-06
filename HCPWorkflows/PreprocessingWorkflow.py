@@ -317,8 +317,8 @@ def CreatePreprocessingWorkFlow(WFname):
     GEM = pe.Node(interface=GenerateEdgeMapImage(), name="EdgeMapImage")
     GEM.inputs.minimumOutputRange = 1
     GEM.inputs.maximumOutputRange = 255
-    GEM.inputs.lowerPercentileMatching = 0.5
-    GEM.inputs.upperPercentileMatching = 0.95
+    GEM.inputs.lowerPercentileMatching = 0.50
+    GEM.inputs.upperPercentileMatching = 0.98 # a value between 92% to 98%
     GEM.inputs.outputMaximumGradientImage = 'MaximumGradientImage.nrrd'
     GEM.inputs.outputEdgeMap = 'EdgeMap.nrrd'
     PreProcWF.connect(MakeGenerateEdgeMapInputListNode, 'imagesList', GEM, 'inputMRVolumes')
