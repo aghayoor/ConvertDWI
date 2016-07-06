@@ -1,7 +1,7 @@
 clear all
 close all
 
-dwi_fn='/scratch/TESTS/IpythonNotebook/20160615_HCPWF/mainWF/Outputs/DWI_corrected_alignedSpace.nrrd';
+dwi_fn='/scratch/TESTS/IpythonNotebook/20160615_HCPWF/mainWF/Outputs/DWI_corrected_alignedSpace_masked.nrrd';
 edgemap_fn='/scratch/TESTS/IpythonNotebook/20160615_HCPWF/mainWF/Outputs/EdgeMap.nrrd';
 out_dir='/scratch/TESTS/IpythonNotebook/20160615_HCPWF/2_SRWF';
 
