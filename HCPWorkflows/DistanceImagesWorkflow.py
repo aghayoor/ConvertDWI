@@ -90,51 +90,56 @@ def CreateDistanceImagesWorkflow(WFname):
         #
         # for loop to fill the distance images
         '''
-          for i in xrange(size[0]):
-              for j in xrange(size[1]):
-                  for k in xrange(size[2]):
-                      fa_distance_image[i,j,k] = abs(tenfit_base[i,j,k].fa - tenfit_sr[i,j,k].fa)
-                      md_distance_image[i,j,k] = abs(tenfit_base[i,j,k].md - tenfit_sr[i,j,k].md)
-                      rd_distance_image[i,j,k] = abs(tenfit_base[i,j,k].rd - tenfit_sr[i,j,k].rd)
-                      ad_distance_image[i,j,k] = abs(tenfit_base[i,j,k].ad - tenfit_sr[i,j,k].ad)
-                      frobenius_distance_image[i,j,k] = distance_euclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-                      logeuclid_distance_image[i,j,k] = distance_logeuclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-                      reimann_distance_image[i,j,k] = distance_reimann(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-                      kullback_distance_image[i,j,k] = distance_kullback(tenfit_base[i,j,k], tenfit_sr[i,j,k])
+        for i in xrange(size[0]):
+            for j in xrange(size[1]):
+                for k in xrange(size[2]):
+                    fa_distance_image[i,j,k] = abs(tenfit_base[i,j,k].fa - tenfit_sr[i,j,k].fa)
+                    md_distance_image[i,j,k] = abs(tenfit_base[i,j,k].md - tenfit_sr[i,j,k].md)
+                    rd_distance_image[i,j,k] = abs(tenfit_base[i,j,k].rd - tenfit_sr[i,j,k].rd)
+                    ad_distance_image[i,j,k] = abs(tenfit_base[i,j,k].ad - tenfit_sr[i,j,k].ad)
+                    frobenius_distance_image[i,j,k] = distance_euclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
+                    logeuclid_distance_image[i,j,k] = distance_logeuclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
+                    reimann_distance_image[i,j,k] = distance_reimann(tenfit_base[i,j,k], tenfit_sr[i,j,k])
+                    kullback_distance_image[i,j,k] = distance_kullback(tenfit_base[i,j,k], tenfit_sr[i,j,k])
         '''
         #
         maskf = sitk.Cast(mask, sitk.sitkFloat32)
         #
+        # create proper SR prefix for output file name
+        sr_file_name = os.path.basename(DWI_sr)
+        sr_file_name_base = os.path.splitext(sr_file_name)[0]
+        sr_name = sr_file_name_base.split('_',2)[2]
+        #
         fa_distance_image = sitk.Multiply(fa_distance_image,maskf)
-        fa_distance_image_fn = os.path.join(os.getcwd(), 'FA_distance.nrrd')
+        fa_distance_image_fn = os.path.realpath(sr_name + '_FA_distance.nrrd')
         sitk.WriteImage(fa_distance_image,fa_distance_image_fn)
         #
         md_distance_image = sitk.Multiply(md_distance_image,maskf)
-        md_distance_image_fn = os.path.join(os.getcwd(), 'MD_distance.nrrd')
+        md_distance_image_fn = os.path.realpath(sr_name + '_MD_distance.nrrd')
         sitk.WriteImage(md_distance_image,md_distance_image_fn)
         #
         rd_distance_image = sitk.Multiply(rd_distance_image,maskf)
-        rd_distance_image_fn = os.path.join(os.getcwd(), 'RD_distance.nrrd')
+        rd_distance_image_fn = os.path.realpath(sr_name + '_RD_distance.nrrd')
         sitk.WriteImage(rd_distance_image,rd_distance_image_fn)
         #
         ad_distance_image = sitk.Multiply(ad_distance_image,maskf)
-        ad_distance_image_fn = os.path.join(os.getcwd(), 'AD_distance.nrrd')
+        ad_distance_image_fn = os.path.realpath(sr_name + '_AD_distance.nrrd')
         sitk.WriteImage(ad_distance_image,ad_distance_image_fn)
         #
         frobenius_distance_image = sitk.Multiply(frobenius_distance_image,maskf)
-        frobenius_distance_image_fn = os.path.join(os.getcwd(), 'Frobenius_distance.nrrd')
+        frobenius_distance_image_fn = os.path.realpath(sr_name + '_Frobenius_distance.nrrd')
         sitk.WriteImage(frobenius_distance_image,frobenius_distance_image_fn)
         #
         logeuclid_distance_image = sitk.Multiply(logeuclid_distance_image,maskf)
-        logeuclid_distance_image_fn = os.path.join(os.getcwd(), 'Logeuclid_distance.nrrd')
+        logeuclid_distance_image_fn = os.path.realpath(sr_name + '_Logeuclid_distance.nrrd')
         sitk.WriteImage(logeuclid_distance_image,logeuclid_distance_image_fn)
         #
         reimann_distance_image = sitk.Multiply(reimann_distance_image,maskf)
-        reimann_distance_image_fn = os.path.join(os.getcwd(), 'Reimann_distance.nrrd')
+        reimann_distance_image_fn = os.path.realpath(sr_name + '_Reimann_distance.nrrd')
         sitk.WriteImage(reimann_distance_image,reimann_distance_image_fn)
         #
         kullback_distance_image = sitk.Multiply(kullback_distance_image,maskf)
-        kullback_distance_image_fn = os.path.join(os.getcwd(), 'Kullback_distance.nrrd')
+        kullback_distance_image_fn = os.path.realpath(sr_name + '_Kullback_distance.nrrd')
         sitk.WriteImage(kullback_distance_image,kullback_distance_image_fn)
         #
         return [fa_distance_image_fn,
@@ -146,8 +151,8 @@ def CreateDistanceImagesWorkflow(WFname):
                 reimann_distance_image_fn,
                 kullback_distance_image_fn]
 
-    def MakeInputSRList(DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV):
-        imagesList = [DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV]
+    def MakeInputSRList(DWI_SR_NN, DWI_SR_IFFT):#, DWI_SR_TV, DWI_SR_WTV):
+        imagesList = [DWI_SR_NN, DWI_SR_IFFT]#, DWI_SR_TV, DWI_SR_WTV]
         return imagesList
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
@@ -172,24 +177,23 @@ def CreateDistanceImagesWorkflow(WFname):
                                                               'Kullback_distance'
                                                               ]),
                           name='outputsSpec')
-
+    ##
     ## Step 1: Create input list
-    '''
+    ##
     MakeInputSRListNode = pe.Node(Function(function=MakeInputSRList,
-                                                    input_names=['DWI_SR_NN','DWI_SR_IFFT',
-                                                                 'DWI_SR_TV','DWI_SR_WTV'],
+                                                    input_names=['DWI_SR_NN','DWI_SR_IFFT'
+                                                                 #,'DWI_SR_TV','DWI_SR_WTV'
+                                                                ],
                                                     output_names=['imagesList']),
                                            name="MakeInputSRList")
-    DistWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_SR_NN','DWI_SR_NN'),
-                                                     ('DWI_SR_IFFT','DWI_SR_IFFT'),
-                                                     ('DWI_SR_TV','DWI_SR_TV'),
-                                                     ('DWI_SR_WTV','DWI_SR_WTV')
+    DistWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_SR_NN','DWI_SR_NN')
+                                                     ,('DWI_SR_IFFT','DWI_SR_IFFT')
+                                                     #,('DWI_SR_TV','DWI_SR_TV')
+                                                     #,('DWI_SR_WTV','DWI_SR_WTV')
                                                      ])])
-    '''
     ##
     ## Step 2: Create distance images
     ##
-    '''
     ComputeDistanceImages = pe.MapNode(interface=Function(function = ComputeDistanceImages,
                                        input_names=['DWI_baseline','DWI_sr','DWI_brainMask'],
                                        output_names=['fa_distance_image_fn','md_distance_image_fn',
@@ -200,18 +204,6 @@ def CreateDistanceImagesWorkflow(WFname):
                                        name="ComputeDistanceImages",
                                        iterfield=['DWI_sr'])
     DistWF.connect(MakeInputSRListNode, 'imagesList', ComputeDistanceImages, 'DWI_sr')
-    '''
-    ### remove me!
-    ComputeDistanceImages = pe.Node(interface=Function(function = ComputeDistanceImages,
-                                    input_names=['DWI_baseline','DWI_sr','DWI_brainMask'],
-                                    output_names=['fa_distance_image_fn','md_distance_image_fn',
-                                                  'rd_distance_image_fn','ad_distance_image_fn',
-                                                  'frobenius_distance_image_fn','logeuclid_distance_image_fn',
-                                                  'reimann_distance_image_fn','kullback_distance_image_fn'
-                                                 ]),
-                                    name="ComputeDistanceImages")
-    DistWF.connect(inputsSpec, 'DWI_SR_IFFT', ComputeDistanceImages, 'DWI_sr')
-    ####
     DistWF.connect([(inputsSpec,ComputeDistanceImages,[('DWI_Baseline','DWI_baseline'),
                                                        ('DWI_brainMask','DWI_brainMask')])])
     DistWF.connect([(ComputeDistanceImages,outputsSpec,[('fa_distance_image_fn','FA_distance'),
