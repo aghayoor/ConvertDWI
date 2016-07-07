@@ -129,7 +129,12 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     DWIDataSink.inputs.base_directory = dataSink_DIR
     DWIDataSink.inputs.substitutions = [('Outputs/_ResampleToAlignedDWIResolution0/','Outputs/'),
                                         ('Outputs/_ResampleToAlignedDWIResolution1/','Outputs/'),
-                                        ('Outputs/_ResampleToAlignedDWIResolution2/','Outputs/')]
+                                        ('Outputs/_ResampleToAlignedDWIResolution2/','Outputs/'),
+                                        ('Outputs/_ComputeDistanceImages0/','Outputs/NN_Distances'),
+                                        ('Outputs/_ComputeDistanceImages1/','Outputs/IFFT_Distances'),
+                                        ('Outputs/_ComputeDistanceImages2/','Outputs/TV_Distances'),
+                                        ('Outputs/_ComputeDistanceImages3/','Outputs/WTV_Distances')
+                                       ]
 
     # Outputs (directory)
     HCPWorkflow.connect(outputsSpec, 'DWI_corrected_originalSpace', DWIDataSink, 'Outputs.@DWI_corrected_originalSpace')
