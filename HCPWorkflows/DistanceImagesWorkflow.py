@@ -88,7 +88,6 @@ def CreateDistanceImagesWorkflow(WFname):
         kullback_distance_image.CopyInformation(mask)
         #
         # for loop to fill the distance images
-        '''
         for i in xrange(size[0]):
             for j in xrange(size[1]):
                 for k in xrange(size[2]):
@@ -100,7 +99,6 @@ def CreateDistanceImagesWorkflow(WFname):
                     logeuclid_distance_image[i,j,k] = distance_logeuclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
                     reimann_distance_image[i,j,k] = distance_reimann(tenfit_base[i,j,k], tenfit_sr[i,j,k])
                     kullback_distance_image[i,j,k] = distance_kullback(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-        '''
         #
         maskf = sitk.Cast(mask, sitk.sitkFloat32)
         #
@@ -150,8 +148,8 @@ def CreateDistanceImagesWorkflow(WFname):
                 reimann_distance_image_fn,
                 kullback_distance_image_fn]
 
-    def MakeInputSRList(DWI_SR_NN, DWI_SR_IFFT):#, DWI_SR_TV, DWI_SR_WTV):
-        imagesList = [DWI_SR_NN, DWI_SR_IFFT]#, DWI_SR_TV, DWI_SR_WTV]
+    def MakeInputSRList(DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV):
+        imagesList = [DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV]
         return imagesList
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
@@ -181,14 +179,14 @@ def CreateDistanceImagesWorkflow(WFname):
     ##
     MakeInputSRListNode = pe.Node(Function(function=MakeInputSRList,
                                                     input_names=['DWI_SR_NN','DWI_SR_IFFT'
-                                                                 #,'DWI_SR_TV','DWI_SR_WTV'
+                                                                 ,'DWI_SR_TV','DWI_SR_WTV'
                                                                 ],
                                                     output_names=['imagesList']),
                                            name="MakeInputSRList")
     DistWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_SR_NN','DWI_SR_NN')
                                                      ,('DWI_SR_IFFT','DWI_SR_IFFT')
-                                                     #,('DWI_SR_TV','DWI_SR_TV')
-                                                     #,('DWI_SR_WTV','DWI_SR_WTV')
+                                                     ,('DWI_SR_TV','DWI_SR_TV')
+                                                     ,('DWI_SR_WTV','DWI_SR_WTV')
                                                      ])])
     ##
     ## Step 2: Create distance images
