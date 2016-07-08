@@ -145,7 +145,12 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                         ('Outputs/DistanceImage/_ComputeDistanceImages0/','Outputs/DistanceImage/NN_Distances/'),
                                         ('Outputs/DistanceImage/_ComputeDistanceImages1/','Outputs/DistanceImage/IFFT_Distances/'),
                                         ('Outputs/DistanceImage/_ComputeDistanceImages2/','Outputs/DistanceImage/TV_Distances/'),
-                                        ('Outputs/DistanceImage/_ComputeDistanceImages3/','Outputs/DistanceImage/WTV_Distances/')
+                                        ('Outputs/DistanceImage/_ComputeDistanceImages3/','Outputs/DistanceImage/WTV_Distances/'),
+                                        ('Outputs/Tractography/_UKFRunRecordStates0/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_UKFRunRecordStates1/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_UKFRunRecordStates2/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_UKFRunRecordStates3/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_UKFRunRecordStates4/','Outputs/Tractography/')
                                        ]
 
     # Outputs (directory)
