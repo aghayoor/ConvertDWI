@@ -18,7 +18,7 @@ from functools import reduce
 def CreateTractographyWorkflow(WFname):
     ###### UTILITY FUNCTIONS #######
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/#
-    def MakeInputSRList(DWI_Baseline, DWI_SR_NN, DWI_SR_IFFT DWI_SR_TV, DWI_SR_WTV):
+    def MakeInputSRList(DWI_Baseline, DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV):
         imagesList = [DWI_Baseline, DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV]
         return imagesList
 
