@@ -66,6 +66,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                               ,'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
                                                               ,'FA_distance','MD_distance','RD_distance','AD_distance'
                                                               ,'Frobenius_distance','Logeuclid_distance','Reimann_distance','Kullback_distance'
+                                                              ,'ukfTracks'
                                                             #,'Baseline_ukfTracks','NN_ukfTracks','IFFT_ukfTracks','TV_ukfTracks','WTV_ukfTracks'
                                                               ]),
                           name='outputsSpec')
@@ -79,6 +80,9 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
 
     DistWFname = 'DistanceImagesWorkflow_CACHE_' + sessionID
     DistWF = CreateDistanceImagesWorkflow(DistWFname)
+
+    TractWFname = 'TractographyWorkflow_CACHE_' + sessionID
+    TractWF = CreateTractographyWorkflow(TractWFname)
     ###
 
     #Connect up the components into an integrated workflow
@@ -120,7 +124,15 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                 ('outputsSpec.Logeuclid_distance','Logeuclid_distance'),
                                                 ('outputsSpec.Reimann_distance','Reimann_distance'),
                                                 ('outputsSpec.Kullback_distance','Kullback_distance')
-                                               ])
+                                               ]),
+                         (PreProcWF, TractWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask')]),
+                         (SRWF, TractWF, [('outputsSpec.DWI_Baseline','inputsSpec.DWI_Baseline'),
+                                          ('outputsSpec.DWI_SR_NN','inputsSpec.DWI_SR_NN'),
+                                          ('outputsSpec.DWI_SR_IFFT','inputsSpec.DWI_SR_IFFT'),
+                                          ('outputsSpec.DWI_SR_TV','inputsSpec.DWI_SR_TV'),
+                                          ('outputsSpec.DWI_SR_WTV','inputsSpec.DWI_SR_WTV')
+                                         ]),
+                         (TractWF, outputsSpec, [('outputsSpec.ukfTracks','ukfTracks')])
                          ])
 
     ## Write all outputs with DataSink
@@ -130,10 +142,10 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     DWIDataSink.inputs.substitutions = [('Outputs/_ResampleToAlignedDWIResolution0/','Outputs/'),
                                         ('Outputs/_ResampleToAlignedDWIResolution1/','Outputs/'),
                                         ('Outputs/_ResampleToAlignedDWIResolution2/','Outputs/'),
-                                        ('Outputs/_ComputeDistanceImages0/','Outputs/NN_Distances'),
-                                        ('Outputs/_ComputeDistanceImages1/','Outputs/IFFT_Distances'),
-                                        ('Outputs/_ComputeDistanceImages2/','Outputs/TV_Distances'),
-                                        ('Outputs/_ComputeDistanceImages3/','Outputs/WTV_Distances')
+                                        ('Outputs/DistanceImage/_ComputeDistanceImages0/','Outputs/DistanceImage/NN_Distances/'),
+                                        ('Outputs/DistanceImage/_ComputeDistanceImages1/','Outputs/DistanceImage/IFFT_Distances/'),
+                                        ('Outputs/DistanceImage/_ComputeDistanceImages2/','Outputs/DistanceImage/TV_Distances/'),
+                                        ('Outputs/DistanceImage/_ComputeDistanceImages3/','Outputs/DistanceImage/WTV_Distances/')
                                        ]
 
     # Outputs (directory)
@@ -145,19 +157,23 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     HCPWorkflow.connect(outputsSpec, 'StrippedT2_125', DWIDataSink, 'Outputs.@StrippedT2_125')
     HCPWorkflow.connect(outputsSpec, 'MaximumGradientImage', DWIDataSink, 'Outputs.@MaximumGradientImage')
     HCPWorkflow.connect(outputsSpec, 'EdgeMap', DWIDataSink, 'Outputs.@EdgeMap')
-    HCPWorkflow.connect(outputsSpec, 'DWI_Baseline', DWIDataSink, 'Outputs.@DWI_Baseline')
-    HCPWorkflow.connect(outputsSpec, 'DWI_SR_NN', DWIDataSink, 'Outputs.@DWI_SR_NN')
-    HCPWorkflow.connect(outputsSpec, 'DWI_SR_IFFT', DWIDataSink, 'Outputs.@DWI_SR_IFFT')
-    HCPWorkflow.connect(outputsSpec, 'DWI_SR_TV', DWIDataSink, 'Outputs.@DWI_SR_TV')
-    HCPWorkflow.connect(outputsSpec, 'DWI_SR_WTV', DWIDataSink, 'Outputs.@DWI_SR_WTV')
-    HCPWorkflow.connect(outputsSpec, 'FA_distance', DWIDataSink, 'Outputs.@FA_distance')
-    HCPWorkflow.connect(outputsSpec, 'MD_distance', DWIDataSink, 'Outputs.@MD_distance')
-    HCPWorkflow.connect(outputsSpec, 'RD_distance', DWIDataSink, 'Outputs.@RD_distance')
-    HCPWorkflow.connect(outputsSpec, 'AD_distance', DWIDataSink, 'Outputs.@AD_distance')
-    HCPWorkflow.connect(outputsSpec, 'Frobenius_distance', DWIDataSink, 'Outputs.@Frobenius_distance')
-    HCPWorkflow.connect(outputsSpec, 'Logeuclid_distance', DWIDataSink, 'Outputs.@Logeuclid_distance')
-    HCPWorkflow.connect(outputsSpec, 'Reimann_distance', DWIDataSink, 'Outputs.@Reimann_distance')
-    HCPWorkflow.connect(outputsSpec, 'Kullback_distance', DWIDataSink, 'Outputs.@Kullback_distance')
+    # Outputs/SuperResolution
+    HCPWorkflow.connect(outputsSpec, 'DWI_Baseline', DWIDataSink, 'Outputs.SuperResolution.@DWI_Baseline')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_NN', DWIDataSink, 'Outputs.SuperResolution.@DWI_SR_NN')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_IFFT', DWIDataSink, 'Outputs.SuperResolution.@DWI_SR_IFFT')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_TV', DWIDataSink, 'Outputs.SuperResolution.@DWI_SR_TV')
+    HCPWorkflow.connect(outputsSpec, 'DWI_SR_WTV', DWIDataSink, 'Outputs.SuperResolution.@DWI_SR_WTV')
+    # Outputs/DistanceImage
+    HCPWorkflow.connect(outputsSpec, 'FA_distance', DWIDataSink, 'Outputs.DistanceImage.@FA_distance')
+    HCPWorkflow.connect(outputsSpec, 'MD_distance', DWIDataSink, 'Outputs.DistanceImage.@MD_distance')
+    HCPWorkflow.connect(outputsSpec, 'RD_distance', DWIDataSink, 'Outputs.DistanceImage.@RD_distance')
+    HCPWorkflow.connect(outputsSpec, 'AD_distance', DWIDataSink, 'Outputs.DistanceImage.@AD_distance')
+    HCPWorkflow.connect(outputsSpec, 'Frobenius_distance', DWIDataSink, 'Outputs.DistanceImage.@Frobenius_distance')
+    HCPWorkflow.connect(outputsSpec, 'Logeuclid_distance', DWIDataSink, 'Outputs.DistanceImage.@Logeuclid_distance')
+    HCPWorkflow.connect(outputsSpec, 'Reimann_distance', DWIDataSink, 'Outputs.DistanceImage.@Reimann_distance')
+    HCPWorkflow.connect(outputsSpec, 'Kullback_distance', DWIDataSink, 'Outputs.DistanceImage.@Kullback_distance')
+    # Outputs/Tractography
+    HCPWorkflow.connect(outputsSpec, 'ukfTracks', DWIDataSink, 'Outputs.Tractography.@ukfTracks')
 
     HCPWorkflow.write_graph()
     HCPWorkflow.run()
@@ -235,6 +251,7 @@ if __name__ == '__main__':
   from PreprocessingWorkflow import CreatePreprocessingWorkFlow
   from SuperResolutionWorkflow import CreateSuperResolutionWorkflow
   from DistanceImagesWorkflow import CreateDistanceImagesWorkflow
+  from TractographyWorkflow import CreateTractographyWorkflow
 
   exit = runMainWorkflow(DWISCAN, T1SCAN, T2SCAN, LabelMapImage, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE)
 

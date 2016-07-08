@@ -15,7 +15,6 @@ from nipype.interfaces.semtools import *
 def CreateDistanceImagesWorkflow(WFname):
     ###### UTILITY FUNCTIONS #######
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/#
-    #
     def ComputeDistanceImages(DWI_baseline,DWI_sr,DWI_brainMask):
         import os
         import numpy as np
