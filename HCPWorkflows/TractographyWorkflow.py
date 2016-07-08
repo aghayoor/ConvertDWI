@@ -21,11 +21,36 @@ def CreateTractographyWorkflow(WFname):
     def MakeInputSRList(DWI_Baseline, DWI_SR_NN, DWI_SR_IFFT DWI_SR_TV, DWI_SR_WTV):
         imagesList = [DWI_Baseline, DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV]
         return imagesList
+
+    def runWMQL(input_tractography, input_atlas):
+        import os
+        from wmql import TractQuerier
+        # prepare proper prefix
+        sr_file_name = os.path.basename(input_tractography)
+        sr_file_name_base = os.path.splitext(sr_file_name)[0]
+        sr_name = sr_file_name_base.split('_',1)[0]
+        out_prefix = sr_name + '_query'
+        # run WMQL
+        tract_querier = TractQuerier()
+        tract_querier.inputs.input_atlas = input_atlas
+        tract_querier.inputs.input_tractography = input_tractography
+        tract_querier.inputs.out_prefix = out_prefix
+        tract_querier.inputs.queries = ['cst.left' ,'cst.right']
+        tract_querier.run()
+        # check outputs
+        output_cst_left_name = out_prefix + '_' + 'cst.left.vtp'
+        output_cst_right_name = out_prefix + '_' + 'cst.right.vtp'
+        output_cst_left = os.path.join(os.getcwd(), output_cst_left_name)
+        output_cst_right = os.path.join(os.getcwd(), output_cst_right_name)
+        assert os.path.isfile(output_cst_left), "Output cst tract file is not found: %s" % output_cst_left
+        assert os.path.isfile(output_cst_right), "Output cst tract file is not found: %s" % output_cst_right
+        return [output_cst_left,output_cst_right]
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
     TractWF = pe.Workflow(name=WFname)
 
-    inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_brainMask',
+    inputsSpec = pe.Node(interface=IdentityInterface(fields=['inputLabelMap',
+                                                             'DWI_brainMask',
                                                              'DWI_Baseline',
                                                              'DWI_SR_NN',
                                                              'DWI_SR_IFFT',
@@ -34,7 +59,7 @@ def CreateTractographyWorkflow(WFname):
                                                              ]),
                          name='inputsSpec')
 
-    outputsSpec = pe.Node(interface=IdentityInterface(fields=['ukfTracks']),
+    outputsSpec = pe.Node(interface=IdentityInterface(fields=['ukfTracks','output_cst_left','output_cst_right']),
                           name='outputsSpec')
 
     ##
@@ -71,5 +96,17 @@ def CreateTractographyWorkflow(WFname):
     TractWF.connect(MakeInputSRListNode, 'imagesList', UKFNode, 'dwiFile')
     TractWF.connect(inputsSpec, 'DWI_brainMask', UKFNode, 'maskFile')
     TractWF.connect(UKFNode,'tracts',outputsSpec,'ukfTracks')
+
+    ##
+    ## Step 3: run WMQL
+    ##
+    tract_querier = pe.Node(interface=Function(function = runWMQL,
+                                               input_names=['input_tractography','input_atlas'],
+                                               output_names=['output_cst_left','output_cst_right']),
+                            name="tract_querier")
+    TractWF.connect(UKFNode,'tracts',tract_querier,'input_tractography')
+    TractWF.connect(inputsSpec,'inputLabelMap',tract_querier,'input_atlas')
+    TractWF.connect(tract_querier,'output_cst_left',outputsSpec,'output_cst_left')
+    TractWF.connect(tract_querier,'output_cst_right',outputsSpec,'output_cst_right')
 
     return TractWF

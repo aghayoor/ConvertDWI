@@ -66,8 +66,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                               ,'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
                                                               ,'FA_distance','MD_distance','RD_distance','AD_distance'
                                                               ,'Frobenius_distance','Logeuclid_distance','Reimann_distance','Kullback_distance'
-                                                              ,'ukfTracks'
-                                                            #,'Baseline_ukfTracks','NN_ukfTracks','IFFT_ukfTracks','TV_ukfTracks','WTV_ukfTracks'
+                                                              ,'ukfTracks','output_cst_left','output_cst_right'
                                                               ]),
                           name='outputsSpec')
 
@@ -125,6 +124,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                 ('outputsSpec.Reimann_distance','Reimann_distance'),
                                                 ('outputsSpec.Kullback_distance','Kullback_distance')
                                                ]),
+                         (inputsSpec, TractWF, [('LabelMapVolume','inputsSpec.inputLabelMap')]),
                          (PreProcWF, TractWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask')]),
                          (SRWF, TractWF, [('outputsSpec.DWI_Baseline','inputsSpec.DWI_Baseline'),
                                           ('outputsSpec.DWI_SR_NN','inputsSpec.DWI_SR_NN'),
@@ -132,7 +132,9 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                           ('outputsSpec.DWI_SR_TV','inputsSpec.DWI_SR_TV'),
                                           ('outputsSpec.DWI_SR_WTV','inputsSpec.DWI_SR_WTV')
                                          ]),
-                         (TractWF, outputsSpec, [('outputsSpec.ukfTracks','ukfTracks')])
+                         (TractWF, outputsSpec, [('outputsSpec.ukfTracks','ukfTracks'),
+                                                 ('outputsSpec.output_cst_left','output_cst_left'),
+                                                 ('outputsSpec.output_cst_right','output_cst_right')])
                          ])
 
     ## Write all outputs with DataSink
@@ -179,6 +181,9 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     HCPWorkflow.connect(outputsSpec, 'Kullback_distance', DWIDataSink, 'Outputs.DistanceImage.@Kullback_distance')
     # Outputs/Tractography
     HCPWorkflow.connect(outputsSpec, 'ukfTracks', DWIDataSink, 'Outputs.Tractography.@ukfTracks')
+    # Outputs/WMQL
+    HCPWorkflow.connect(outputsSpec, 'output_cst_left', DWIDataSink, 'Outputs.WMQL.@output_cst_left')
+    HCPWorkflow.connect(outputsSpec, 'output_cst_right', DWIDataSink, 'Outputs.WMQL.@output_cst_right')
 
     HCPWorkflow.write_graph()
     HCPWorkflow.run()
