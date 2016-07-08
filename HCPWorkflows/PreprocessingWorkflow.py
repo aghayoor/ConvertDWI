@@ -196,7 +196,7 @@ def CreatePreprocessingWorkFlow(WFname):
                                                output_names=['outNrrdDWIFilename']),
                             name="CorrectDirectionCosign")
     CorrectDCNode.inputs.outNrrdDWI = 'DWI_corrected_originalSpace.nrrd'
-    CorrectDCNode.inputs.useSingleShell = True
+    CorrectDCNode.inputs.useSingleShell = False
     PreProcWF.connect(dwiConvert, 'outputVolume', CorrectDCNode, 'inNrrdDWI')
     PreProcWF.connect(CorrectDCNode, 'outNrrdDWIFilename', outputsSpec, 'DWI_corrected_originalSpace')
 
