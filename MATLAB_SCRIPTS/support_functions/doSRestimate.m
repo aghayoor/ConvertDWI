@@ -26,7 +26,7 @@ estimatedTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by To
 estimatedWTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Weighted Total Variation
 
 %HACK
-numGrad=1;
+%numGrad=1;
 
 for c=1:numGrad
     % Normalize data
