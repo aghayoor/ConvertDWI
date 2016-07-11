@@ -26,22 +26,22 @@ estimatedIFFTsignal = single(zeros(size(DWIIntensityData))); % reconstructed by 
 estimatedTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Total Variation
 estimatedWTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Weighted Total Variation
 
-%HACK
+%% Define Fourier Projection Operators
+highres = size(edgemap); %output resolution
+lowres = round(highres/samplingFactor); %input lower resolution
+k = get_kspace_inds( highres ); %k=fourier indices
+lowpass_inds = get_lowpass_inds(k,lowres);
+[A,At] = defAAt_fourier(lowpass_inds, highres); %Define function handles for fourier projection operators
+
+%% HACK
 numGrad=1;
 
 for c=1:numGrad
-    % Normalize data
-    %data_component_3D = DWIIntensityData(:,:,:,c);
-    %normalizedSignal(:,:,:,c) = NormalizeDataComponent(data_component_3D);
-    %%
+    %% data component
     X0 = normalizedSignal(:,:,:,c);
-    %% Define Fourier Projection Operators
-    highres = size(edgemap); %output resolution
-    lowres = round(highres/samplingFactor); %input lower resolution
-    k = get_kspace_inds( highres ); %k=fourier indices
-    lowpass_inds = get_lowpass_inds(k,lowres);
-    [A,At] = defAAt_fourier(lowpass_inds, highres); %Define function handles for fourier projection operators
-    b = A(X0);       %low-resolution fourier samples
+    %% low-resolution fourier samples: input to SR algorithms
+    b = A(X0);
+    %% create lowres image from highres image
     Xlow = real(ifftn(reshape(b,lowres)));
     %% Nearest-Neighbor reconstruction
     X_NN = nearestNeigborInterp(NormalizeData(abs(Xlow)),highres);
@@ -75,11 +75,11 @@ for c=1:numGrad
     tol = 1e-8;    %convergence tolerance
     [X_WTV, cost] = OpWeightedL2(b,edgemap,lambda,A,At,highres,Niter,tol,gam);
     estimatedWTVsignal(:,:,:,c) = X_WTV;
-end
+end % end of for loop
 
 delete(poolobj)
-%%
-% Just for sanity check and debugging
+
+%% Just for sanity check and debugging
 if(numGrad==1)
     X0_size = size(X0);
     X0_2d = X0(:,:,round(X0_size(3)/2));
@@ -127,7 +127,7 @@ end
 end
 
 function [normArr] = NormalizeData(arr)
-  % This function normalizes a 3D matrix between zero and one.
+  % This function normalizes input matrix between zero and one.
   newMax = single(1);
   newMin = single(0);
   oldMax = single(max(arr(:)));
