@@ -16,7 +16,7 @@ num_slots = getenv('NSLOTS');
 if( num_slots )
   poolobj = parpool(STRTODOUBLE(num_slots));
 else
-  poolobj = parpool(12);
+  poolobj = parpool(4);
 end
 
 normalizedSignal = NormalizeData(DWIIntensityData); % high-res image normalized between 0 and 1
