@@ -35,7 +35,9 @@ lowpass_inds = get_lowpass_inds(k,lowres);
 %% HACK for debugging
 %numComponents=2;
 
-parfor c=1:numComponents
+% parfor causes application out of memory!
+% use for temporarly
+for c=1:numComponents
     %% data component
     X0 = normalizedSignal(:,:,:,c);
     %% Define function handles for fourier projection operators
