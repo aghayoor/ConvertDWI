@@ -26,19 +26,20 @@ estimatedIFFTsignal = single(zeros(size(DWIIntensityData))); % reconstructed by 
 estimatedTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Total Variation
 estimatedWTVsignal = single(zeros(size(DWIIntensityData))); % reconstructed by Weighted Total Variation
 
-%% Define Fourier Projection Operators
+%% Find lowpass indices to define Fourier Projection Operators [A,At]
 highres = size(edgemap); %output resolution
 lowres = round(highres/samplingFactor); %input lower resolution
 k = get_kspace_inds( highres ); %k=fourier indices
 lowpass_inds = get_lowpass_inds(k,lowres);
-[A,At] = defAAt_fourier(lowpass_inds, highres); %Define function handles for fourier projection operators
 
-%% HACK
-numComponents=2;
+%% HACK for debugging
+%numComponents=2;
 
-for c=1:numComponents
+parfor c=1:numComponents
     %% data component
     X0 = normalizedSignal(:,:,:,c);
+    %% Define function handles for fourier projection operators
+    [A,At] = defAAt_fourier(lowpass_inds, highres);
     %% low-resolution fourier samples: input to SR algorithms
     b = A(X0);
     %% Nearest-Neighbor reconstruction
@@ -52,11 +53,11 @@ for c=1:numComponents
     X_IFFT = At(fftn(Xlow));
     estimatedIFFTsignal(:,:,:,c) = X_IFFT;
     %% Run Standard TV algorithm (no edgemap)
-    %     lambda = 5e-4; %regularization parameter
-    %     Niter = 200;  %number of iterations
-    %     gam = 0.01; %set in the range [0.01,1].
-    %     Xinit = real(At(b)); %initialization
-    %     [X_TV, cost] = OpWeightedTV_PD_AHMOD(b,ones(highres),lambda,A,At,highres,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
+    % lambda = 5e-4; %regularization parameter
+    % Niter = 200;  %number of iterations
+    % gam = 0.01; %set in the range [0.01,1].
+    % Xinit = real(At(b)); %initialization
+    % [X_TV, cost] = OpWeightedTV_PD_AHMOD(b,ones(highres),lambda,A,At,highres,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
     %
     lambda = 1e-3; %regularization parameter
     Niter = 100;   %number of iterations
@@ -65,11 +66,11 @@ for c=1:numComponents
     [X_TV, cost] = OpWeightedL2(b,ones(highres),lambda,A,At,highres,Niter,tol,gam);
     estimatedTVsignal(:,:,:,c) = X_TV;
     %% Run New Weighted TV algorithm
-    %     lambda = 5e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-    %     Niter = 200;  %number of iterations
-    %     gam = 0.01; %set in the range [0.01,1].
-    %     Xinit = real(At(b)); %initialization
-    %     [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemap,lambda,A,At,highres,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
+    % lambda = 5e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+    % Niter = 200;  %number of iterations
+    % gam = 0.01; %set in the range [0.01,1].
+    % Xinit = real(At(b)); %initialization
+    % [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemap,lambda,A,At,highres,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
     %
     lambda = 1e-3; %regularization parameter
     Niter = 100;   %number of iterations
@@ -109,19 +110,19 @@ for c=1:numComponents
 %         X_WL2_2d = X_WTV(:,:,round(X_WL2_size(3)/2));
 %         fn=fn+1; figure(fn); imagesc(abs(X_WL2_2d),[0 1]); colorbar; title('hi resolution, WTV');
 %
-        SNR_NN = -20*log10(norm(X_NN(:)-X0(:))/norm(X0(:)));
-        fprintf('Nearest-Neigbour output SNR = %2.1f dB\n',SNR_NN);
-
-        SNR_IFFT = -20*log10(norm(X_IFFT(:)-X0(:))/norm(X0(:)));
-        fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
-
-        SNR_L2 = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
-        fprintf('L2 output SNR (L2 algorithm) = %2.1f dB\n',SNR_L2);
-        fprintf('L2 final cost %2.4e\n',cost(end));
-
-        SNR_WL2 = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
-        fprintf('WL2 output SNR (Weighted L2 algorithm) = %2.1f dB\n',SNR_WL2);
-        fprintf('WL2 final cost %2.4e\n',cost(end));
+%         SNR_NN = -20*log10(norm(X_NN(:)-X0(:))/norm(X0(:)));
+%         fprintf('Nearest-Neigbour output SNR = %2.1f dB\n',SNR_NN);
+%
+%         SNR_IFFT = -20*log10(norm(X_IFFT(:)-X0(:))/norm(X0(:)));
+%         fprintf('Zero-padded IFFT output SNR = %2.1f dB\n',SNR_IFFT);
+%
+%         SNR_L2 = -20*log10(norm(X_TV(:)-X0(:))/norm(X0(:)));
+%         fprintf('L2 output SNR (L2 algorithm) = %2.1f dB\n',SNR_L2);
+%         fprintf('L2 final cost %2.4e\n',cost(end));
+%
+%         SNR_WL2 = -20*log10(norm(X_WTV(:)-X0(:))/norm(X0(:)));
+%         fprintf('WL2 output SNR (Weighted L2 algorithm) = %2.1f dB\n',SNR_WL2);
+%         fprintf('WL2 final cost %2.4e\n',cost(end));
 %     end
 end % end of for loop
 
