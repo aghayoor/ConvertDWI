@@ -60,13 +60,20 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     ## DWI_SR_TV: the high resolution DWI that is output of super-resolution reconstruction by Total Variation method.
     ## DWI_SR_WTV: the high resolution DWI that is output of super-resolution reconstruction by Weighted TV method.
 
-    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace'
-                                                              ,'DWI_corrected_alignedSpace_masked','DWIBrainMask'
-                                                              ,'StrippedT1_125','StrippedT2_125','MaximumGradientImage','EdgeMap'
-                                                              ,'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'
-                                                              ,'FA_distance','MD_distance','RD_distance','AD_distance'
-                                                              ,'Frobenius_distance','Logeuclid_distance','Reimann_distance','Kullback_distance'
-                                                              ,'ukfTracks','output_cst_left','output_cst_right'
+    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace',
+                                                              'DWI_corrected_alignedSpace_masked','DWIBrainMask',
+                                                              'StrippedT1_125','StrippedT2_125','MaximumGradientImage','EdgeMap',
+                                                              'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV',
+                                                              'FA_distance','MD_distance','RD_distance','AD_distance',
+                                                              'Frobenius_distance','Logeuclid_distance','Reimann_distance','Kullback_distance',
+                                                              'Baseline_ukfTracts','NN_ukfTracts','IFFT_ukfTracts','TV_ukfTracts','WTV_ukfTracts',
+                                                              'Baseline_cst_left','Baseline_cst_right',
+                                                              'NN_cst_left','NN_cst_right',
+                                                              'IFFT_cst_left','IFFT_cst_right',
+                                                              'TV_cst_left','TV_cst_right',
+                                                              'WTV_cst_left','WTV_cst_right',
+                                                              'NN_overlap_coeficient','IFFT_overlap_coeficient',
+                                                              'TV_overlap_coeficient','WTV_overlap_coeficient'
                                                               ]),
                           name='outputsSpec')
 
@@ -132,9 +139,25 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                           ('outputsSpec.DWI_SR_TV','inputsSpec.DWI_SR_TV'),
                                           ('outputsSpec.DWI_SR_WTV','inputsSpec.DWI_SR_WTV')
                                          ]),
-                         (TractWF, outputsSpec, [('outputsSpec.ukfTracks','ukfTracks'),
-                                                 ('outputsSpec.output_cst_left','output_cst_left'),
-                                                 ('outputsSpec.output_cst_right','output_cst_right')])
+                         (TractWF, outputsSpec, [('outputsSpec.Baseline_ukfTracts','Baseline_ukfTracts'),
+                                                 ('outputsSpec.NN_ukfTracts','NN_ukfTracts'),
+                                                 ('outputsSpec.IFFT_ukfTracts','IFFT_ukfTracts'),
+                                                 ('outputsSpec.TV_ukfTracts','TV_ukfTracts'),
+                                                 ('outputsSpec.WTV_ukfTracts','WTV_ukfTracts'),
+                                                 ('outputsSpec.Baseline_cst_left','Baseline_cst_left'),
+                                                 ('outputsSpec.Baseline_cst_right','Baseline_cst_right'),
+                                                 ('outputsSpec.NN_cst_left','NN_cst_left'),
+                                                 ('outputsSpec.NN_cst_right','NN_cst_right'),
+                                                 ('outputsSpec.IFFT_cst_left','IFFT_cst_left'),
+                                                 ('outputsSpec.IFFT_cst_right','IFFT_cst_right'),
+                                                 ('outputsSpec.TV_cst_left','TV_cst_left'),
+                                                 ('outputsSpec.TV_cst_right','TV_cst_right'),
+                                                 ('outputsSpec.WTV_cst_left','WTV_cst_left'),
+                                                 ('outputsSpec.WTV_cst_right','WTV_cst_right'),
+                                                 ('outputsSpec.NN_overlap_coeficient','NN_overlap_coeficient'),
+                                                 ('outputsSpec.IFFT_overlap_coeficient','IFFT_overlap_coeficient'),
+                                                 ('outputsSpec.TV_overlap_coeficient','TV_overlap_coeficient'),
+                                                 ('outputsSpec.WTV_overlap_coeficient','WTV_overlap_coeficient')])
                          ])
 
     ## Write all outputs with DataSink
@@ -148,11 +171,11 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                         ('Outputs/DistanceImage/_ComputeDistanceImages1/','Outputs/DistanceImage/IFFT_Distances/'),
                                         ('Outputs/DistanceImage/_ComputeDistanceImages2/','Outputs/DistanceImage/TV_Distances/'),
                                         ('Outputs/DistanceImage/_ComputeDistanceImages3/','Outputs/DistanceImage/WTV_Distances/'),
-                                        ('Outputs/Tractography/_UKFRunRecordStates0/','Outputs/Tractography/'),
-                                        ('Outputs/Tractography/_UKFRunRecordStates1/','Outputs/Tractography/'),
-                                        ('Outputs/Tractography/_UKFRunRecordStates2/','Outputs/Tractography/'),
-                                        ('Outputs/Tractography/_UKFRunRecordStates3/','Outputs/Tractography/'),
-                                        ('Outputs/Tractography/_UKFRunRecordStates4/','Outputs/Tractography/')
+                                        ('Outputs/Tractography/_RunUKFt0/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_RunUKFt1/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_RunUKFt2/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_RunUKFt3/','Outputs/Tractography/'),
+                                        ('Outputs/Tractography/_RunUKFt4/','Outputs/Tractography/')
                                        ]
 
     # Outputs (directory)
@@ -180,10 +203,27 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     HCPWorkflow.connect(outputsSpec, 'Reimann_distance', DWIDataSink, 'Outputs.DistanceImage.@Reimann_distance')
     HCPWorkflow.connect(outputsSpec, 'Kullback_distance', DWIDataSink, 'Outputs.DistanceImage.@Kullback_distance')
     # Outputs/Tractography
-    HCPWorkflow.connect(outputsSpec, 'ukfTracks', DWIDataSink, 'Outputs.Tractography.@ukfTracks')
+    HCPWorkflow.connect(outputsSpec, 'Baseline_ukfTracts', DWIDataSink, 'Outputs.Tractography.@Baseline_ukfTracts')
+    HCPWorkflow.connect(outputsSpec, 'NN_ukfTracts', DWIDataSink, 'Outputs.Tractography.@NN_ukfTracts')
+    HCPWorkflow.connect(outputsSpec, 'IFFT_ukfTracts', DWIDataSink, 'Outputs.Tractography.@IFFT_ukfTracts')
+    HCPWorkflow.connect(outputsSpec, 'TV_ukfTracts', DWIDataSink, 'Outputs.Tractography.@TV_ukfTracts')
+    HCPWorkflow.connect(outputsSpec, 'WTV_ukfTracts', DWIDataSink, 'Outputs.Tractography.@WTV_ukfTracts')
     # Outputs/WMQL
-    HCPWorkflow.connect(outputsSpec, 'output_cst_left', DWIDataSink, 'Outputs.WMQL.@output_cst_left')
-    HCPWorkflow.connect(outputsSpec, 'output_cst_right', DWIDataSink, 'Outputs.WMQL.@output_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'Baseline_cst_left', DWIDataSink, 'Outputs.WMQL.@Baseline_cst_left')
+    HCPWorkflow.connect(outputsSpec, 'Baseline_cst_right', DWIDataSink, 'Outputs.WMQL.@Baseline_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'NN_cst_left', DWIDataSink, 'Outputs.WMQL.@NN_cst_left')
+    HCPWorkflow.connect(outputsSpec, 'NN_cst_right', DWIDataSink, 'Outputs.WMQL.@NN_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'IFFT_cst_left', DWIDataSink, 'Outputs.WMQL.@IFFT_cst_left')
+    HCPWorkflow.connect(outputsSpec, 'IFFT_cst_right', DWIDataSink, 'Outputs.WMQL.@IFFT_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'TV_cst_left', DWIDataSink, 'Outputs.WMQL.@TV_cst_left')
+    HCPWorkflow.connect(outputsSpec, 'TV_cst_right', DWIDataSink, 'Outputs.WMQL.@TV_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'WTV_cst_left', DWIDataSink, 'Outputs.WMQL.@WTV_cst_left')
+    HCPWorkflow.connect(outputsSpec, 'WTV_cst_right', DWIDataSink, 'Outputs.WMQL.@WTV_cst_right')
+    # Outputs/Stats
+    HCPWorkflow.connect(outputsSpec, 'NN_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@NN_overlap_coeficient')
+    HCPWorkflow.connect(outputsSpec, 'IFFT_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@IFFT_overlap_coeficient')
+    HCPWorkflow.connect(outputsSpec, 'TV_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@TV_overlap_coeficient')
+    HCPWorkflow.connect(outputsSpec, 'WTV_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@WTV_overlap_coeficient')
 
     HCPWorkflow.write_graph()
     HCPWorkflow.run()

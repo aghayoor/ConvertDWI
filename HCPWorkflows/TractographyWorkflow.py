@@ -166,7 +166,7 @@ def CreateTractographyWorkflow(WFname):
     ##
     ## Step 2: UKF Processing
     ##
-    UKFNode = pe.MapNode(interface=UKFTractography(), name= "UKFRunRecordStates", iterfield=['dwiFile','tracts'])
+    UKFNode = pe.MapNode(interface=UKFTractography(), name= "RunUKFt", iterfield=['dwiFile','tracts'])
     UKFNode.inputs.tracts = ['Baseline_ukfTracts.vtp','NN_ukfTracts.vtp','IFFT_ukfTracts.vtp','TV_ukfTracts.vtp','WTV_ukfTracts.vtp']
     UKFNode.inputs.numTensor = '2'
     UKFNode.inputs.freeWater = True ## default False
