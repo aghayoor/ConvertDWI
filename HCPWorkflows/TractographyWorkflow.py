@@ -45,6 +45,80 @@ def CreateTractographyWorkflow(WFname):
         assert os.path.isfile(output_cst_left), "Output cst tract file is not found: %s" % output_cst_left
         assert os.path.isfile(output_cst_right), "Output cst tract file is not found: %s" % output_cst_right
         return [output_cst_left,output_cst_right]
+
+    # This function helps to pick desirable output from the output list
+    def pickFromList(inlist,item):
+        return inlist[item]
+
+    def MakeInputCSTList(NN_cst, IFFT_cst, TV_cst, WTV_cst):
+        outputList = [NN_cst, IFFT_cst, TV_cst, WTV_cst]
+        return outputList
+
+    def CSTOverlap(gs_cst_left, gs_cst_right, sr_cst_left, sr_cst_right):
+        # gs: gold standard, sr: super-resolution reconstructed
+        import os
+        #########
+        def ComputeBhattacharyyaCoeficient(baseline_bundle, sr_bundle):
+            import vtk
+            import numpy as np
+            ##
+            def ReturnDistributionInEachCoordinate(bundle):
+                from scipy import stats
+                numPoints = bundle.GetNumberOfPoints()
+                points = bundle.GetPoints()
+                x_arr = np.array([points.GetPoint(i)[0] for i in xrange(numPoints)])
+                y_arr = np.array([points.GetPoint(i)[1] for i in xrange(numPoints)])
+                z_arr = np.array([points.GetPoint(i)[2] for i in xrange(numPoints)])
+                x = np.linspace(x_arr.min(), x_arr.max(), 100)
+                y = np.linspace(y_arr.min(), y_arr.max(), 100)
+                z = np.linspace(z_arr.min(), z_arr.max(), 100)
+                kde_x = stats.gaussian_kde(x_arr)
+                kde_y = stats.gaussian_kde(y_arr)
+                kde_z = stats.gaussian_kde(z_arr)
+                p_x = kde_x(x)
+                p_y = kde_y(y)
+                p_z = kde_z(z)
+                return p_x, p_y, p_z
+            ## read in each fiber bundle
+            reader_gs = vtk.vtkXMLPolyDataReader()
+            reader_gs.SetFileName(baseline_bundle)
+            reader_gs.Update()
+            gs = reader_gs.GetOutput()
+            #
+            reader_sr = vtk.vtkXMLPolyDataReader()
+            reader_sr.SetFileName(sr_bundle)
+            reader_sr.Update()
+            sr = reader_sr.GetOutput()
+            ## Use ksdensity to estimate probability density function for the sample data in each coordinate
+            [p_gs_x, p_gs_y, p_gs_z] = ReturnDistributionInEachCoordinate(gs)
+            [p_sr_x, p_sr_y, p_sr_z] = ReturnDistributionInEachCoordinate(sr)
+            BC = (1.0/3.0)*( np.sum(np.sqrt(p_gs_x * p_sr_x)) + np.sum(np.sqrt(p_gs_y * p_sr_y)) + np.sum(np.sqrt(p_gs_z * p_sr_z)) )
+            return BC
+            ##
+        def writeLabelStatistics(filename,statsList):
+            import csv
+            label = os.path.splitext(os.path.basename(filename))[0]
+            with open(filename, 'wb') as lf:
+                headerdata = [['#Label', 'BC_left.cst', 'BC_right.cst', 'BC_cst']]
+                wr = csv.writer(lf, delimiter=',')
+                wr.writerows(headerdata)
+                wr.writerows([[label] + statsList])
+        #########
+        # compute Bhattacharyya Coeficient for cst.left/right/total
+        bc_l = ComputeBhattacharyyaCoeficient(gs_cst_left,sr_cst_left)
+        bc_r = ComputeBhattacharyyaCoeficient(gs_cst_right,sr_cst_right)
+        bc_total = (bc_l + bc_r)/2.0
+        statsList = [format(bc_l,'.4f'), format(bc_r,'.4f'), format(bc_total,'.4f')]
+        # create output file name
+        srfn = os.path.basename(sr_cst_left_fn)
+        srfnbase = os.path.splitext(srfn)[0]
+        srLabel = srfnbase.split('_',1)[0]
+        fn = srLabel + '.csv'
+        output_csv_file = os.path.join(os.getcwd(), fn)
+        # write the stats list
+        writeLabelStatistics(output_csv_file,statsList)
+        assert os.path.isfile(output_csv_file), "Output Bhattacharyya coeficient file is not found: %s" % output_csv_file
+        return output_csv_file
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
     TractWF = pe.Workflow(name=WFname)
@@ -59,7 +133,21 @@ def CreateTractographyWorkflow(WFname):
                                                              ]),
                          name='inputsSpec')
 
-    outputsSpec = pe.Node(interface=IdentityInterface(fields=['ukfTracks','output_cst_left','output_cst_right']),
+    outputsSpec = pe.Node(interface=IdentityInterface(fields=['Baseline_ukfTracts',
+                                                              'NN_ukfTracts',
+                                                              'IFFT_ukfTracts',
+                                                              'TV_ukfTracts',
+                                                              'WTV_ukfTracts',
+                                                              'Baseline_cst_left','Baseline_cst_right',
+                                                              'NN_cst_left','NN_cst_right',
+                                                              'IFFT_cst_left','IFFT_cst_right',
+                                                              'TV_cst_left','TV_cst_right',
+                                                              'WTV_cst_left','WTV_cst_right',
+                                                              'NN_overlap_coeficient',
+                                                              'IFFT_overlap_coeficient',
+                                                              'TV_overlap_coeficient',
+                                                              'WTV_overlap_coeficient'
+                                                             ]),
                           name='outputsSpec')
 
     ##
@@ -69,11 +157,11 @@ def CreateTractographyWorkflow(WFname):
                                            input_names=['DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'],
                                            output_names=['imagesList']),
                                   name="MakeInputSRList")
-    TractWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_Baseline','DWI_Baseline')
-                                                      ,('DWI_SR_NN','DWI_SR_NN')
-                                                      ,('DWI_SR_IFFT','DWI_SR_IFFT')
-                                                      ,('DWI_SR_TV','DWI_SR_TV')
-                                                      ,('DWI_SR_WTV','DWI_SR_WTV')
+    TractWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_Baseline','DWI_Baseline'),
+                                                      ('DWI_SR_NN','DWI_SR_NN'),
+                                                      ('DWI_SR_IFFT','DWI_SR_IFFT'),
+                                                      ('DWI_SR_TV','DWI_SR_TV'),
+                                                      ('DWI_SR_WTV','DWI_SR_WTV')
                                                      ])])
     ##
     ## Step 2: UKF Processing
@@ -95,18 +183,77 @@ def CreateTractographyWorkflow(WFname):
     UKFNode.inputs.seedsPerVoxel = 1
     TractWF.connect(MakeInputSRListNode, 'imagesList', UKFNode, 'dwiFile')
     TractWF.connect(inputsSpec, 'DWI_brainMask', UKFNode, 'maskFile')
-    TractWF.connect(UKFNode,'tracts',outputsSpec,'ukfTracks')
+    TractWF.connect(UKFNode,('tracts', pickFromList, 0),outputsSpec,'Baseline_ukfTracts')
+    TractWF.connect(UKFNode,('tracts', pickFromList, 1),outputsSpec,'NN_ukfTracts')
+    TractWF.connect(UKFNode,('tracts', pickFromList, 2),outputsSpec,'IFFT_ukfTracts')
+    TractWF.connect(UKFNode,('tracts', pickFromList, 3),outputsSpec,'TV_ukfTracts')
+    TractWF.connect(UKFNode,('tracts', pickFromList, 4),outputsSpec,'WTV_ukfTracts')
 
     ##
-    ## Step 3: run WMQL
+    ## Step 3: run WMQL to extract cortico-spinal (CST) tract bundles
     ##
-    tract_querier = pe.Node(interface=Function(function = runWMQL,
-                                               input_names=['input_tractography','input_atlas'],
-                                               output_names=['output_cst_left','output_cst_right']),
-                            name="tract_querier")
+    tract_querier = pe.MapNode(interface=Function(function = runWMQL,
+                                                  input_names=['input_tractography','input_atlas'],
+                                                  output_names=['output_cst_left','output_cst_right']),
+                               name="tract_querier", iterfield=['input_tractography'])
     TractWF.connect(UKFNode,'tracts',tract_querier,'input_tractography')
     TractWF.connect(inputsSpec,'inputLabelMap',tract_querier,'input_atlas')
-    TractWF.connect(tract_querier,'output_cst_left',outputsSpec,'output_cst_left')
-    TractWF.connect(tract_querier,'output_cst_right',outputsSpec,'output_cst_right')
+    # baseline cst
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 0),outputsSpec,'Baseline_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 0),outputsSpec,'Baseline_cst_right')
+    # NN cst
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 1),outputsSpec,'NN_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 1),outputsSpec,'NN_cst_right')
+    # IFFT cst
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 2),outputsSpec,'IFFT_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 2),outputsSpec,'IFFT_cst_right')
+    # TV cst
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 3),outputsSpec,'TV_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 3),outputsSpec,'TV_cst_right')
+    # WTV cst
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 4),outputsSpec,'WTV_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 4),outputsSpec,'WTV_cst_right')
+
+    ##
+    ## Step 4: Make SR CST left/right lists
+    ##
+
+    # step 4_1: input cst.left
+    cst_left_list = pe.Node(Function(function=MakeInputCSTList,
+                                     input_names=['NN_cst', 'IFFT_cst', 'TV_cst', 'WTV_cst'],
+                                     output_names=['outputList']),
+                            name="cst_left_list")
+    TractWF.connect([(tract_querier,cst_left_list,[(('output_cst_left', pickFromList, 1),'NN_cst'),
+                                                   (('output_cst_left', pickFromList, 2),'IFFT_cst'),
+                                                   (('output_cst_left', pickFromList, 3),'TV_cst'),
+                                                   (('output_cst_left', pickFromList, 4),'WTV_cst')
+                                                   ])])
+
+    # step 4_2: input cst.right
+    cst_right_list = pe.Node(Function(function=MakeInputCSTList,
+                                      input_names=['NN_cst', 'IFFT_cst', 'TV_cst', 'WTV_cst'],
+                                      output_names=['outputList']),
+                             name="cst_right_list")
+    TractWF.connect([(tract_querier,cst_right_list,[(('output_cst_right', pickFromList, 1),'NN_cst'),
+                                                    (('output_cst_right', pickFromList, 2),'IFFT_cst'),
+                                                    (('output_cst_right', pickFromList, 3),'TV_cst'),
+                                                    (('output_cst_right', pickFromList, 4),'WTV_cst')
+                                                    ])])
+
+    ##
+    ## Step 5: Compute Bhattacharyya coeficient to find overlap between CST tract bundles
+    ##
+    cst_overlap = pe.MapNode(interface=Function(function = CSTOverlap,
+                                                input_names=['gs_cst_left', 'gs_cst_right', 'sr_cst_left', 'sr_cst_right'],
+                                                output_names=['output_csv_file']),
+                             name="BhattacharyyaCoeficient", iterfield=['sr_cst_left','sr_cst_right'])
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 0),cst_overlap,'gs_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 0),cst_overlap,'gs_cst_right')
+    TractWF.connect(cst_left_list,'outputList',cst_overlap,'sr_cst_left')
+    TractWF.connect(cst_right_list,'outputList',cst_overlap,'sr_cst_right')
+    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 0), outputsSpec, 'NN_overlap_coeficient')
+    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 1), outputsSpec, 'IFFT_overlap_coeficient')
+    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 2), outputsSpec, 'TV_overlap_coeficient')
+    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 3), outputsSpec, 'WTV_overlap_coeficient')
 
     return TractWF
