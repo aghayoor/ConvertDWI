@@ -110,7 +110,7 @@ def CreateTractographyWorkflow(WFname):
         bc_total = (bc_l + bc_r)/2.0
         statsList = [format(bc_l,'.4f'), format(bc_r,'.4f'), format(bc_total,'.4f')]
         # create output file name
-        srfn = os.path.basename(sr_cst_left_fn)
+        srfn = os.path.basename(sr_cst_left)
         srfnbase = os.path.splitext(srfn)[0]
         srLabel = srfnbase.split('_',1)[0]
         fn = srLabel + '.csv'
