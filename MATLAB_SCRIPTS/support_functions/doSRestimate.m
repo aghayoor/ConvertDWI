@@ -31,6 +31,8 @@ highres = size(edgemap); %output resolution
 lowres = round(highres/samplingFactor); %input lower resolution
 k = get_kspace_inds( highres ); %k=fourier indices
 lowpass_inds = get_lowpass_inds(k,lowres);
+% Define function handles for fourier projection operators
+[A,At] = defAAt_fourier(lowpass_inds, highres);
 
 %% HACK for debugging
 %numComponents=2;
@@ -40,8 +42,6 @@ lowpass_inds = get_lowpass_inds(k,lowres);
 for c=1:numComponents
     %% data component
     X0 = normalizedSignal(:,:,:,c);
-    %% Define function handles for fourier projection operators
-    [A,At] = defAAt_fourier(lowpass_inds, highres);
     %% low-resolution fourier samples: input to SR algorithms
     b = A(X0);
     %% Nearest-Neighbor reconstruction
