@@ -162,6 +162,7 @@ def CreatePreprocessingWorkFlow(WFname):
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace',
                                                               'DWI_corrected_alignedSpace',
+                                                              'DWI_corrected_alignedSpace_B0',
                                                               'DWI_corrected_alignedSpace_masked',
                                                               'DWIBrainMask',
                                                               'StrippedT1_125',
@@ -264,7 +265,7 @@ def CreatePreprocessingWorkFlow(WFname):
     gtractResampleDWIInPlace_Trigid.inputs.outputVolume = 'DWI_corrected_alignedSpace.nrrd'
     gtractResampleDWIInPlace_Trigid.inputs.outputResampledB0 = 'DWI_corrected_alignedSpace_B0.nrrd'
     PreProcWF.connect(gtractResampleDWIInPlace_Trigid, 'outputVolume', outputsSpec, 'DWI_corrected_alignedSpace')
-
+    PreProcWF.connect(gtractResampleDWIInPlace_Trigid, 'outputResampledB0', outputsSpec, 'DWI_corrected_alignedSpace_B0')
 
     ##
     ## STEP 4: Resample T1/T2/Labelmap to the voxel space of aligned DWI

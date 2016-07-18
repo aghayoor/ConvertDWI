@@ -60,7 +60,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     ## DWI_SR_TV: the high resolution DWI that is output of super-resolution reconstruction by Total Variation method.
     ## DWI_SR_WTV: the high resolution DWI that is output of super-resolution reconstruction by Weighted TV method.
 
-    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace',
+    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace','DWI_corrected_alignedSpace_B0'
                                                               'DWI_corrected_alignedSpace_masked','DWIBrainMask',
                                                               'StrippedT1_125','StrippedT2_125','MaximumGradientImage','EdgeMap',
                                                               'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV',
@@ -99,6 +99,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                ]),
                          (PreProcWF, outputsSpec, [('outputsSpec.DWI_corrected_originalSpace','DWI_corrected_originalSpace'),
                                                    ('outputsSpec.DWI_corrected_alignedSpace','DWI_corrected_alignedSpace'),
+                                                   ('outputsSpec.DWI_corrected_alignedSpace_B0','DWI_corrected_alignedSpace_B0'),
                                                    ('outputsSpec.DWI_corrected_alignedSpace_masked','DWI_corrected_alignedSpace_masked'),
                                                    ('outputsSpec.DWIBrainMask','DWIBrainMask'),
                                                    ('outputsSpec.StrippedT1_125','StrippedT1_125'),
@@ -190,6 +191,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     # Outputs (directory)
     HCPWorkflow.connect(outputsSpec, 'DWI_corrected_originalSpace', DWIDataSink, 'Outputs.@DWI_corrected_originalSpace')
     HCPWorkflow.connect(outputsSpec, 'DWI_corrected_alignedSpace', DWIDataSink, 'Outputs.@DWI_corrected_alignedSpace')
+    HCPWorkflow.connect(outputsSpec, 'DWI_corrected_alignedSpace_B0', DWIDataSink, 'Outputs.@DWI_corrected_alignedSpace_B0')
     HCPWorkflow.connect(outputsSpec, 'DWI_corrected_alignedSpace_masked', DWIDataSink, 'Outputs.@DWI_corrected_alignedSpace_masked')
     HCPWorkflow.connect(outputsSpec, 'DWIBrainMask', DWIDataSink, 'Outputs.@DWIBrainMask')
     HCPWorkflow.connect(outputsSpec, 'StrippedT1_125', DWIDataSink, 'Outputs.@StrippedT1_125')
