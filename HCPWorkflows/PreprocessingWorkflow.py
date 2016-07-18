@@ -197,7 +197,7 @@ def CreatePreprocessingWorkFlow(WFname):
                                                output_names=['outNrrdDWIFilename']),
                             name="CorrectDirectionCosign")
     CorrectDCNode.inputs.outNrrdDWI = 'DWI_corrected_originalSpace.nrrd'
-    CorrectDCNode.inputs.useSingleShell = False
+    CorrectDCNode.inputs.useSingleShell = True
     PreProcWF.connect(dwiConvert, 'outputVolume', CorrectDCNode, 'inNrrdDWI')
     PreProcWF.connect(CorrectDCNode, 'outNrrdDWIFilename', outputsSpec, 'DWI_corrected_originalSpace')
 
@@ -323,7 +323,7 @@ def CreatePreprocessingWorkFlow(WFname):
     GEM.inputs.outputMaximumGradientImage = 'MaximumGradientImage.nrrd'
     GEM.inputs.outputEdgeMap = 'EdgeMap.nrrd'
     PreProcWF.connect(MakeGenerateEdgeMapInputListNode, 'imagesList', GEM, 'inputMRVolumes')
-    #PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 2), GEM, 'inputMask') # input brain mask to calculate quantiles
+    PreProcWF.connect(ResampleToAlignedDWIResolution,('outputVolume', pickFromList, 2), GEM, 'inputMask') # input brain mask to calculate quantiles
     PreProcWF.connect(GEM, 'outputMaximumGradientImage', outputsSpec, 'MaximumGradientImage')
     PreProcWF.connect(GEM, 'outputEdgeMap', outputsSpec, 'EdgeMap')
 

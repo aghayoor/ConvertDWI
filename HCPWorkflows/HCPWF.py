@@ -60,7 +60,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     ## DWI_SR_TV: the high resolution DWI that is output of super-resolution reconstruction by Total Variation method.
     ## DWI_SR_WTV: the high resolution DWI that is output of super-resolution reconstruction by Weighted TV method.
 
-    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace','DWI_corrected_alignedSpace_B0'
+    outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_corrected_originalSpace','DWI_corrected_alignedSpace','DWI_corrected_alignedSpace_B0',
                                                               'DWI_corrected_alignedSpace_masked','DWIBrainMask',
                                                               'StrippedT1_125','StrippedT2_125','MaximumGradientImage','EdgeMap',
                                                               'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV',
