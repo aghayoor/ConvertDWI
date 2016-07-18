@@ -175,7 +175,16 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                         ('Outputs/Tractography/_RunUKFt1/','Outputs/Tractography/'),
                                         ('Outputs/Tractography/_RunUKFt2/','Outputs/Tractography/'),
                                         ('Outputs/Tractography/_RunUKFt3/','Outputs/Tractography/'),
-                                        ('Outputs/Tractography/_RunUKFt4/','Outputs/Tractography/')
+                                        ('Outputs/Tractography/_RunUKFt4/','Outputs/Tractography/'),
+                                        ('Outputs/WMQL/_tract_querier0/','Outputs/WMQL/'),
+                                        ('Outputs/WMQL/_tract_querier1/','Outputs/WMQL/'),
+                                        ('Outputs/WMQL/_tract_querier2/','Outputs/WMQL/'),
+                                        ('Outputs/WMQL/_tract_querier3/','Outputs/WMQL/'),
+                                        ('Outputs/WMQL/_tract_querier4/','Outputs/WMQL/'),
+                                        ('Outputs/Stats/_BhattacharyyaCoeficient0/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_BhattacharyyaCoeficient1/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_BhattacharyyaCoeficient2/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_BhattacharyyaCoeficient3/','Outputs/Stats/')
                                        ]
 
     # Outputs (directory)
