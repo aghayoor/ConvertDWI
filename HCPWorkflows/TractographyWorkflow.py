@@ -106,7 +106,9 @@ def CreateTractographyWorkflow(WFname):
         #########
         # compute Bhattacharyya Coeficient for cst.left/right/total
         bc_l = ComputeBhattacharyyaCoeficient(gs_cst_left,sr_cst_left)
+        if bc_l > 1: bc_l = 1
         bc_r = ComputeBhattacharyyaCoeficient(gs_cst_right,sr_cst_right)
+        if bc_r > 1: bc_r = 1
         bc_total = (bc_l + bc_r)/2.0
         statsList = [format(bc_l,'.4f'), format(bc_r,'.4f'), format(bc_total,'.4f')]
         # create output file name
