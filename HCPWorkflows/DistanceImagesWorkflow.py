@@ -195,13 +195,14 @@ def CreateDistanceImagesWorkflow(WFname):
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
     DistWF = pe.Workflow(name=WFname)
 
-    inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_brainMask'
-                                                             ,'DWI_Baseline'
-                                                             ,'DWI_SR_NN'
-                                                             ,'DWI_SR_IFFT'
-                                                             ,'DWI_SR_TV'
-                                                             ,'DWI_SR_WTV'
-                                                             ]),
+    inputsSpec = pe.Node(interface=IdentityInterface(fields=['LobesLabelMapVolume',
+                                                             'DWI_brainMask',
+                                                             'DWI_Baseline',
+                                                             'DWI_SR_NN',
+                                                             'DWI_SR_IFFT',
+                                                             'DWI_SR_TV',
+                                                             'DWI_SR_WTV'
+                                                            ]),
                          name='inputsSpec')
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['FA_distance',
@@ -212,22 +213,20 @@ def CreateDistanceImagesWorkflow(WFname):
                                                               'Logeuclid_distance',
                                                               'Reimann_distance',
                                                               'Kullback_distance'
-                                                              ]),
+                                                             ]),
                           name='outputsSpec')
     ##
     ## Step 1: Create input list
     ##
     MakeInputSRListNode = pe.Node(Function(function=MakeInputSRList,
-                                                    input_names=['DWI_SR_NN','DWI_SR_IFFT'
-                                                                 ,'DWI_SR_TV','DWI_SR_WTV'
-                                                                ],
-                                                    output_names=['imagesList']),
+                                           input_names=['DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV'],
+                                           output_names=['imagesList']),
                                            name="MakeInputSRList")
-    DistWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_SR_NN','DWI_SR_NN')
-                                                     ,('DWI_SR_IFFT','DWI_SR_IFFT')
-                                                     ,('DWI_SR_TV','DWI_SR_TV')
-                                                     ,('DWI_SR_WTV','DWI_SR_WTV')
-                                                     ])])
+    DistWF.connect([(inputsSpec,MakeInputSRListNode,[('DWI_SR_NN','DWI_SR_NN'),
+                                                     ('DWI_SR_IFFT','DWI_SR_IFFT'),
+                                                     ('DWI_SR_TV','DWI_SR_TV'),
+                                                     ('DWI_SR_WTV','DWI_SR_WTV')
+                                                    ])])
     ##
     ## Step 2: Create distance images
     ##

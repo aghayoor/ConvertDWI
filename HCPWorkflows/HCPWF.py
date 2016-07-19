@@ -14,7 +14,7 @@ HCPWF.py
 The purpose of this pipeline is to complete all the pre-processing, super-resolution reconstruction and evaluation steps on Human Connectome Project DWI datasets. The main inputs to this pipeline are input DWI subject from HCP dataset and post processing structural MRIs and brain labelmap from BRAINSAutoWorkup (BAW).
 
 Usage:
-  HCPWF.py --inputDWIScan DWISCAN --inputT1Scan T1SCAN --inputT2Scan T2SCAN --inputBrainLabelsMapImage BLMImage --program_paths PROGRAM_PATHS --python_aux_paths PYTHON_AUX_PATHS --labelsConfigFile LABELS_CONFIG_FILE [--workflowCacheDir CACHEDIR] [--resultDir RESULTDIR]
+  HCPWF.py --inputDWIScan DWISCAN --inputT1Scan T1SCAN --inputT2Scan T2SCAN --inputStandardLabels FS_STANDARD_LABELS --inputLobeLabels LOBE_LABELS --program_paths PROGRAM_PATHS --python_aux_paths PYTHON_AUX_PATHS --labelsConfigFile LABELS_CONFIG_FILE [--workflowCacheDir CACHEDIR] [--resultDir RESULTDIR]
   HCPWF.py -v | --version
   HCPWF.py -h | --help
 
@@ -24,7 +24,8 @@ Options:
   --inputDWIScan DWISCAN                    Path to the input DWI scan for further processing
   --inputT1Scan T1SCAN                      Path to the input T1 scan from BAW
   --inputT2Scan T2SCAN                      Path to the input T2 scan from BAW
-  --inputBrainLabelsMapImage BLMImage       Path to the input brain labels map image from BAW
+  --inputStandardLabels FS_STANDARD_LABELS  Path to the standard freesurfer brain labels map image from BAW (fs_standard_label)
+  --inputLobeLabels LOBE_LABELS             Path to the brain lobes label map image from BAW (lobe_label)
   --program_paths PROGRAM_PATHS             Path to the directory where binary files are places
   --python_aux_paths PYTHON_AUX_PATHS       Path to the AutoWorkup directory
   --labelsConfigFile LABELS_CONFIG_FILE     Configuration file that defines region labels (.csv)
@@ -33,7 +34,7 @@ Options:
 """
 from __future__ import print_function
 
-def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE):
+def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labelMap, BASE_DIR, dataSink_DIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE):
     print("Running the workflow ...")
     sessionID = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(DWI_scan))))
 
@@ -43,13 +44,14 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     HCPWorkflow = pe.Workflow(name=WFname)
     HCPWorkflow.base_dir = BASE_DIR
 
-    inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWIVolume','T1Volume','T2Volume','LabelMapVolume']),
+    inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWIVolume','T1Volume','T2Volume','FSLabelMapVolume','LobesLabelMapVolume']),
                          name='inputsSpec')
 
     inputsSpec.inputs.DWIVolume = DWI_scan
     inputsSpec.inputs.T1Volume = T1_scan
     inputsSpec.inputs.T2Volume = T2_scan
-    inputsSpec.inputs.LabelMapVolume = labelMap_image
+    inputsSpec.inputs.FSLabelMapVolume = FS_standard_labelMap # standard freesurfer labelmap
+    inputsSpec.inputs.LobesLabelMapVolume = lobes_labelMap # brain lobes labelmap
 
     ## DWI_corrected_alignedSpace: input HCP DWI image that is converted to NRRD,
     #                              corrected and aligned to physical space of input structral MR images.
@@ -95,7 +97,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
     HCPWorkflow.connect([(inputsSpec,PreProcWF,[('DWIVolume','inputsSpec.DWIVolume'),
                                                 ('T1Volume','inputsSpec.T1Volume'),
                                                 ('T2Volume','inputsSpec.T2Volume'),
-                                                ('LabelMapVolume','inputsSpec.LabelMapVolume'),
+                                                ('FSLabelMapVolume','inputsSpec.LabelMapVolume'),
                                                ]),
                          (PreProcWF, outputsSpec, [('outputsSpec.DWI_corrected_originalSpace','DWI_corrected_originalSpace'),
                                                    ('outputsSpec.DWI_corrected_alignedSpace','DWI_corrected_alignedSpace'),
@@ -116,6 +118,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                               ('outputsSpec.DWI_SR_TV','DWI_SR_TV'),
                                               ('outputsSpec.DWI_SR_WTV','DWI_SR_WTV')
                                              ]),
+                         (inputsSpec, DistWF, [('LobesLabelMapVolume','inputsSpec.LobesLabelMapVolume')]),
                          (PreProcWF, DistWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask')]),
                          (SRWF, DistWF, [('outputsSpec.DWI_Baseline','inputsSpec.DWI_Baseline'),
                                          ('outputsSpec.DWI_SR_NN','inputsSpec.DWI_SR_NN'),
@@ -132,7 +135,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, labelMap_image, BASE_DIR, dataSi
                                                 ('outputsSpec.Reimann_distance','Reimann_distance'),
                                                 ('outputsSpec.Kullback_distance','Kullback_distance')
                                                ]),
-                         (inputsSpec, TractWF, [('LabelMapVolume','inputsSpec.inputLabelMap')]),
+                         (inputsSpec, TractWF, [('FSLabelMapVolume','inputsSpec.inputLabelMap')]),
                          (PreProcWF, TractWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask')]),
                          (SRWF, TractWF, [('outputsSpec.DWI_Baseline','inputsSpec.DWI_Baseline'),
                                           ('outputsSpec.DWI_SR_NN','inputsSpec.DWI_SR_NN'),
@@ -258,8 +261,11 @@ if __name__ == '__main__':
   T2SCAN = argv['--inputT2Scan']
   assert os.path.exists(T2SCAN), "Input T2 scan is not found: %s" % T2SCAN
 
-  LabelMapImage = argv['--inputBrainLabelsMapImage']
-  assert os.path.exists(LabelMapImage), "Input Brain labels map image is not found: %s" % LabelMapImage
+  FSStandardLabelMap = argv['--inputStandardLabels']
+  assert os.path.exists(FSStandardLabelMap), "Input standard freesurfer brain labelmap image is not found: %s" % FSStandardLabelMap
+
+  LobesLabelMap = argv['--inputLobeLabels']
+  assert os.path.exists(LobesLabelMap), "Input brain lobes labelmap image is not found: %s" % LobesLabelMap
 
   PROGRAM_PATHS = argv['--program_paths']
 
@@ -314,6 +320,6 @@ if __name__ == '__main__':
   from DistanceImagesWorkflow import CreateDistanceImagesWorkflow
   from TractographyWorkflow import CreateTractographyWorkflow
 
-  exit = runMainWorkflow(DWISCAN, T1SCAN, T2SCAN, LabelMapImage, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE)
+  exit = runMainWorkflow(DWISCAN, T1SCAN, T2SCAN, FSStandardLabelMap, LobesLabelMap, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE)
 
   sys.exit(exit)
