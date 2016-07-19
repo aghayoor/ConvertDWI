@@ -52,7 +52,7 @@ for i = 1:iter
     L = L + residue;
 
     resvec(i) = norm(residue(:))/norm(Y(:));
-    if (iter > 10) && (resvec(i) < tol)
+    if (i > 10) && (resvec(i) < tol)
         return;
     end
 
