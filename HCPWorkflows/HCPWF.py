@@ -118,8 +118,13 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                               ('outputsSpec.DWI_SR_TV','DWI_SR_TV'),
                                               ('outputsSpec.DWI_SR_WTV','DWI_SR_WTV')
                                              ]),
-                         (inputsSpec, DistWF, [('LobesLabelMapVolume','inputsSpec.LobesLabelMapVolume')]),
-                         (PreProcWF, DistWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask')]),
+                         (inputsSpec, DistWF, [('T1Volume','inputsSpec.inputT1'), # T1 and T2 are needed to compute purePlugsMask
+                                               ('T2Volume','inputsSpec.inputT2'),
+                                               ('LobesLabelMapVolume','inputsSpec.LobesLabelMapVolume') # needed to find WM regions in each brain lobe
+                                              ]),
+                         (PreProcWF, DistWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask'),
+                                              ('outputsSpec.DWI_corrected_alignedSpace_masked','inputsSpec.DWI_corrected_alignedSpace_masked')
+                                             ]),
                          (SRWF, DistWF, [('outputsSpec.DWI_Baseline','inputsSpec.DWI_Baseline'),
                                          ('outputsSpec.DWI_SR_NN','inputsSpec.DWI_SR_NN'),
                                          ('outputsSpec.DWI_SR_IFFT','inputsSpec.DWI_SR_IFFT'),

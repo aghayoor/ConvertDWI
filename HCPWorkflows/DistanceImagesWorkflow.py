@@ -191,12 +191,32 @@ def CreateDistanceImagesWorkflow(WFname):
     def MakeInputSRList(DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV):
         imagesList = [DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV]
         return imagesList
+
+    def MakePurePlugsMaskInputList(inputT1, inputT2, inputIDWI):
+        imagesList = [inputT1, inputT2, inputIDWI]
+        return imagesList
+
+    def CreateBrainPurePlugsMask(PurePlugsMask, DWI_brainMask):
+        import os
+        import SimpleITK as sitk
+        assert os.path.exists(PurePlugsMask), "File not found: %s" % PurePlugsMask
+        assert os.path.exists(DWI_brainMask), "File not found: %s" % DWI_brainMask
+        ppmask = sitk.ReadImage(PurePlugsMask)
+        brainmask = sitk.ReadImage(DWI_brainMask)
+        brainPurePlugs = ppmask * sitk.Cast(brainmask,sitk.sitkUInt8)
+        BrainPurePlugsMask = os.path.realpath('BrainPurePlugsMask.nrrd')
+        sitk.WriteImage(brainPurePlugs,BrainPurePlugsMask)
+        assert os.path.exists(BrainPurePlugsMask), "Output BrainPurePlugsMask file not found: %s" % BrainPurePlugsMask
+        return BrainPurePlugsMask
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
     DistWF = pe.Workflow(name=WFname)
 
-    inputsSpec = pe.Node(interface=IdentityInterface(fields=['LobesLabelMapVolume',
+    inputsSpec = pe.Node(interface=IdentityInterface(fields=['inputT1',
+                                                             'inputT2',
+                                                             'LobesLabelMapVolume',
                                                              'DWI_brainMask',
+                                                             'DWI_corrected_alignedSpace_masked',
                                                              'DWI_Baseline',
                                                              'DWI_SR_NN',
                                                              'DWI_SR_IFFT',
@@ -212,7 +232,9 @@ def CreateDistanceImagesWorkflow(WFname):
                                                               'Frobenius_distance',
                                                               'Logeuclid_distance',
                                                               'Reimann_distance',
-                                                              'Kullback_distance'
+                                                              'Kullback_distance',
+                                                              'idwi_image',
+                                                              'PurePlugsMask'
                                                              ]),
                           name='outputsSpec')
     ##
@@ -251,5 +273,50 @@ def CreateDistanceImagesWorkflow(WFname):
                                                         ('reimann_distance_image_fn','Reimann_distance'),
                                                         ('kullback_distance_image_fn','Kullback_distance')])])
 
+    ##
+    ## Step 3: Create IDWI image
+    ##
+    DTIEstim = pe.Node(interface=dtiestim(), name="DTIEstim")
+    DTIEstim.inputs.method = 'wls'
+    DTIEstim.inputs.threshold = 0
+    #DTIEstim.inputs.correctionType = 'nearest'
+    DTIEstim.inputs.tensor_output = 'DTI_Output.nrrd'
+    DTIEstim.inputs.idwi = 'IDWI_Output.nrrd'
+    DTIEstim.inputs.B0 = 'average_B0.nrrd'
+    DistWF.connect(inputsSpec, 'DWI_corrected_alignedSpace_masked', DTIEstim, 'dwi_image')
+    DistWF.connect(inputsSpec, 'DWI_brainMask', DTIEstim, 'brain_mask')
+    DistWF.connect(DTIEstim, 'idwi', outputsSpec, 'idwi_image')
+
+    ##
+    ## Step 4: Generate Pure plugs mask
+    ##
+
+    ## Step 4_1: Make a list for input modality list
+    MakePurePlugsMaskInputListNode = pe.Node(Function(function=MakePurePlugsMaskInputList,
+                                                      input_names=['inputT1','inputT2','inputIDWI'],
+                                                      output_names=['imagesList']),
+                                             name="MakePurePlugsMaskInputList")
+    DistWF.connect(inputsSpec, 'inputT1', MakePurePlugsMaskInputListNode, 'inputT1')
+    DistWF.connect(inputsSpec, 'inputT2', MakePurePlugsMaskInputListNode, 'inputT2')
+    DistWF.connect(DTIEstim, 'idwi', MakePurePlugsMaskInputListNode, 'inputIDWI')
+
+    ## Step 4_2: Create the mask
+    PurePlugsMaskNode = pe.Node(interface=GeneratePurePlugMask(), name="PurePlugsMask")
+    PurePlugsMaskNode.inputs.threshold = 0.15
+    PurePlugsMaskNode.inputs.outputMaskFile = 'PurePlugsMask.nrrd'
+    DistWF.connect(MakePurePlugsMaskInputListNode, 'imagesList', PurePlugsMaskNode, 'inputImageModalities')
+
+    ## Step 4_3:
+    CreateBrainPurePlugsMaskNode = pe.Node(Function(function=CreateBrainPurePlugsMask,
+                                                    input_names=['PurePlugsMask', 'DWI_brainMask'],
+                                                    output_names=['BrainPurePlugsMask']),
+                                           name="CreateBrainPurePlugsMask")
+    DistWF.connect(PurePlugsMaskNode, 'outputMaskFile', CreateBrainPurePlugsMaskNode, 'PurePlugsMask')
+    DistWF.connect(inputsSpec, 'DWI_brainMask', CreateBrainPurePlugsMaskNode, 'DWI_brainMask')
+    DistWF.connect(CreateBrainPurePlugsMaskNode, 'BrainPurePlugsMask', outputsSpec, 'PurePlugsMask')
+
+    ##
+    ## Step 5: Generate different WM ROIs
+    ##
 
     return DistWF
