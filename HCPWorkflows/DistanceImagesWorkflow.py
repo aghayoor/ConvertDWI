@@ -208,6 +208,146 @@ def CreateDistanceImagesWorkflow(WFname):
         sitk.WriteImage(brainPurePlugs,BrainPurePlugsMask)
         assert os.path.exists(BrainPurePlugsMask), "Output BrainPurePlugsMask file not found: %s" % BrainPurePlugsMask
         return BrainPurePlugsMask
+
+    def CreateWhiteMatterROIMask(LobesLabelMapVolume,BrainPurePlugsMask):
+        import os
+        import SimpleITK as sitk
+        ####
+        def ResampleMask(in_mask, ref_mask):
+            resampler = sitk.ResampleImageFilter()
+            resampler.SetReferenceImage(ref_mask)
+            resampler.SetInterpolator(sitk.sitkLabelGaussian) # Smoothly interpolate multi-label images
+            res_mask = resampler.Execute(in_mask)
+            return res_mask
+        ####
+        assert os.path.exists(LobesLabelMapVolume), "File not found: %s" % LobesLabelMapVolume
+        assert os.path.exists(BrainPurePlugsMask), "File not found: %s" % BrainPurePlugsMask
+        ## read in masks
+        lobeLabels = sitk.ReadImage(LobesLabelMapVolume)
+        ppmask = sitk.ReadImage(BrainPurePlugsMask)
+        # resample input label map to lattice space of pure plug mask (DWI mask)
+        lobeLabels = ResampleMask(lobeLabels, ppmask)
+        ## define lobe labels
+        temporal_wm = ((lobeLabels == 9703) + (lobeLabels == 9803))
+        occipital_wm = ((lobeLabels == 9706) + (lobeLabels == 9806))
+        frontal_wm = ((lobeLabels == 9707) + (lobeLabels == 9807))
+        parietal_wm = ((lobeLabels == 9708) + (lobeLabels == 9808))
+        ## define pure/ not pure labels
+        temporal_wm_pure = temporal_wm * ppmask
+        temporal_wm_NOTpure = temporal_wm * (1 - ppmask)
+        #
+        occipital_wm_pure = occipital_wm * ppmask
+        occipital_wm_NOTpure = occipital_wm * (1 - ppmask)
+        #
+        frontal_wm_pure = frontal_wm * ppmask
+        frontal_wm_NOTpure = frontal_wm * (1 - ppmask)
+        #
+        parietal_wm_pure = parietal_wm * ppmask
+        parietal_wm_NOTpure = parietal_wm * (1 - ppmask)
+        ## all above masks should have no overlap, so test it!
+        wholemask = (temporal_wm_pure + temporal_wm_NOTpure
+                     + occipital_wm_pure + occipital_wm_NOTpure
+                     + frontal_wm_pure + frontal_wm_NOTpure
+                     + parietal_wm_pure + parietal_wm_NOTpure)
+        statFilter = sitk.StatisticsImageFilter()
+        statFilter.Execute(wholemask)
+        wholemask_max = statFilter.GetMaximum()
+        if wholemask_max != 1:
+            raise ValueError('White matter regions of interest must not overlap!')
+        ## Now create a label map that only has our white matter regions of interest, such that:
+        # frontal_wm_pure = 10
+        # frontal_wm_NOTpure = 11
+        # parietal_wm_pure = 20
+        # parietal_wm_NOTpure = 21
+        # occipital_wm_pure = 30
+        # occipital_wm_NOTpure = 31
+        # temporal_wm_pure = 40
+        # temporal_wm_NOTpure = 41
+        wm_roi_labels = ( (frontal_wm_pure*10) + (frontal_wm_NOTpure*11)
+                        + (parietal_wm_pure*20) + (parietal_wm_NOTpure*21)
+                        + (occipital_wm_pure*30) + (occipital_wm_NOTpure*31)
+                        + (temporal_wm_pure*40) + (temporal_wm_NOTpure*41) )
+        # write out all 8 ROIs to the disk
+        wm_roi_labels_fn = os.path.realpath('wm_roi_labelmap.nrrd')
+        sitk.WriteImage(wm_roi_labels, wm_roi_labels_fn)
+        assert os.path.exists(wm_roi_labels_fn), "Output wm roi labelmap file not found: %s" % wm_roi_labels_fn
+        return wm_roi_labels_fn
+
+    def ComputeStatistics(wm_roi_labelmap,
+                          FA_distance,MD_distance,RD_distance,AD_distance,
+                          Frobenius_distance,Logeuclid_distance,
+                          Reimann_distance,Kullback_distance):
+        import os
+        import SimpleITK as sitk
+        ####
+        def ReturnErrorImageStatsList(distImage_fn, roiMask_fn):
+            distImage = sitk.ReadImage(distImage_fn)
+            roi = sitk.ReadImage(roiMask_fn)
+            statFilter = sitk.LabelStatisticsImageFilter()
+            statFilter.Execute(distImage, roi)
+            #
+            frontal_pure_mean = statFilter.GetMean(10)
+            frontal_NOTpure_mean = statFilter.GetMean(11)
+            #
+            parietal_pure_mean = statFilter.GetMean(20)
+            parietal_NOTpure_mean = statFilter.GetMean(21)
+            #
+            occipital_pure_mean = statFilter.GetMean(30)
+            occipital_NOTpure_mean = statFilter.GetMean(31)
+            #
+            temporal_pure_mean = statFilter.GetMean(40)
+            temporal_NOTpure_mean = statFilter.GetMean(41)
+            # Now create statistics list
+            statsList = [format(frontal_pure_mean,'.4f'),
+                         format(parietal_pure_mean,'.4f'),
+                         format(occipital_pure_mean,'.4f'),
+                         format(temporal_pure_mean,'.4f'),
+                         format(frontal_NOTpure_mean,'.4f'),
+                         format(parietal_NOTpure_mean,'.4f'),
+                         format(occipital_NOTpure_mean,'.4f'),
+                         format(temporal_NOTpure_mean,'.4f')]
+            return statsList
+        ####
+        def writeLabelStatistics(filename,statisticsDictionary):
+            import csv
+            with open(filename, 'wb') as lf:
+                headerdata = [['#Label', 'frontal_pure_mean', 'parietal_pure_mean',
+                               'occipital_pure_mean', 'temporal_pure_mean',
+                               'frontal_NOTpure_mean', 'parietal_NOTpure_mean',
+                               'occipital_NOTpure_mean', 'temporal_NOTpure_mean']]
+                wr = csv.writer(lf, delimiter=',')
+                wr.writerows(headerdata)
+                for key, value in sorted(statisticsDictionary.items()):
+                    wr.writerows([[key] + value])
+        ####
+        assert os.path.exists(wm_roi_labelmap), "File not found: %s" % wm_roi_labelmap
+        assert os.path.exists(FA_distance), "File not found: %s" % FA_distance
+        assert os.path.exists(MD_distance), "File not found: %s" % MD_distance
+        assert os.path.exists(RD_distance), "File not found: %s" % RD_distance
+        assert os.path.exists(AD_distance), "File not found: %s" % AD_distance
+        assert os.path.exists(Frobenius_distance), "File not found: %s" % Frobenius_distance
+        assert os.path.exists(Logeuclid_distance), "File not found: %s" % Logeuclid_distance
+        assert os.path.exists(Reimann_distance), "File not found: %s" % Reimann_distance
+        assert os.path.exists(Kullback_distance), "File not found: %s" % Kullback_distance
+        ## compute the stats
+        statisticsDictionary={}
+        statisticsDictionary['FA'] = ReturnErrorImageStatsList(FA_distance, wm_roi_labelmap)
+        statisticsDictionary['MD'] = ReturnErrorImageStatsList(MD_distance, wm_roi_labelmap)
+        statisticsDictionary['RD'] = ReturnErrorImageStatsList(RD_distance, wm_roi_labelmap)
+        statisticsDictionary['AD'] = ReturnErrorImageStatsList(AD_distance, wm_roi_labelmap)
+        statisticsDictionary['Frobenius'] = ReturnErrorImageStatsList(Frobenius_distance, wm_roi_labelmap)
+        statisticsDictionary['Logeuclid'] = ReturnErrorImageStatsList(Logeuclid_distance, wm_roi_labelmap)
+        statisticsDictionary['Reimann'] = ReturnErrorImageStatsList(Reimann_distance, wm_roi_labelmap)
+        statisticsDictionary['Kullback'] = ReturnErrorImageStatsList(Kullback_distance, wm_roi_labelmap)
+        ## create output filename
+        fa_dist_fn = os.path.basename(FA_distance) # in a format of {SR}_FA_distance.nrrd
+        base_name = os.path.splitext(fa_dist_fn)[0] # in a format of {SR}_FA_distance
+        sr_name = base_name.split('_',2)[0] # SR name = NN,IFFT,TV,WTV
+        statisticsFile = os.path.realpath(sr_name + '_errorImages_statistics.csv')
+        # write statistics to a csv file
+        writeLabelStatistics(statisticsFile,statisticsDictionary)
+        return statisticsFile
+
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
     DistWF = pe.Workflow(name=WFname)
@@ -233,8 +373,10 @@ def CreateDistanceImagesWorkflow(WFname):
                                                               'Logeuclid_distance',
                                                               'Reimann_distance',
                                                               'Kullback_distance',
-                                                              'idwi_image',
-                                                              'PurePlugsMask'
+                                                              'IDWI_image',
+                                                              'PurePlugsMask',
+                                                              'WM_ROI_Labelmap',
+                                                              'errorImagesStatisticsFile'
                                                              ]),
                           name='outputsSpec')
     ##
@@ -285,7 +427,7 @@ def CreateDistanceImagesWorkflow(WFname):
     DTIEstim.inputs.B0 = 'average_B0.nrrd'
     DistWF.connect(inputsSpec, 'DWI_corrected_alignedSpace_masked', DTIEstim, 'dwi_image')
     DistWF.connect(inputsSpec, 'DWI_brainMask', DTIEstim, 'brain_mask')
-    DistWF.connect(DTIEstim, 'idwi', outputsSpec, 'idwi_image')
+    DistWF.connect(DTIEstim, 'idwi', outputsSpec, 'IDWI_image')
 
     ##
     ## Step 4: Generate Pure plugs mask
@@ -306,7 +448,7 @@ def CreateDistanceImagesWorkflow(WFname):
     PurePlugsMaskNode.inputs.outputMaskFile = 'PurePlugsMask.nrrd'
     DistWF.connect(MakePurePlugsMaskInputListNode, 'imagesList', PurePlugsMaskNode, 'inputImageModalities')
 
-    ## Step 4_3:
+    ## Step 4_3: Create brain pure plugs mask
     CreateBrainPurePlugsMaskNode = pe.Node(Function(function=CreateBrainPurePlugsMask,
                                                     input_names=['PurePlugsMask', 'DWI_brainMask'],
                                                     output_names=['BrainPurePlugsMask']),
@@ -318,5 +460,36 @@ def CreateDistanceImagesWorkflow(WFname):
     ##
     ## Step 5: Generate different WM ROIs
     ##
+    CreateWhiteMatterROIMaskNode = pe.Node(Function(function=CreateWhiteMatterROIMask,
+                                                    input_names=['LobesLabelMapVolume','BrainPurePlugsMask'],
+                                                    output_names=['wm_roi_labels_fn']),
+                                           name="CreateWhiteMatterROIMask")
+    DistWF.connect(inputsSpec, 'LobesLabelMapVolume', CreateWhiteMatterROIMaskNode, 'LobesLabelMapVolume')
+    DistWF.connect(CreateBrainPurePlugsMaskNode, 'BrainPurePlugsMask', CreateWhiteMatterROIMaskNode, 'BrainPurePlugsMask')
+    DistWF.connect(CreateWhiteMatterROIMaskNode, 'wm_roi_labels_fn', outputsSpec, 'WM_ROI_Labelmap')
+
+    ##
+    ## Step 6: Compute Statistics: compute average of each distance image in each of ROIs.
+    ##
+    ComputeStats = pe.MapNode(interface=Function(function = ComputeStatistics,
+                                                 input_names=['wm_roi_labelmap',
+                                                              'FA_distance','MD_distance','RD_distance','AD_distance',
+                                                              'Frobenius_distance','Logeuclid_distance',
+                                                              'Reimann_distance','Kullback_distance'],
+                                                 output_names=['statisticsFile']),
+                              name="ComputeStatistics",
+                              iterfield=['FA_distance','MD_distance','RD_distance','AD_distance',
+                                         'Frobenius_distance','Logeuclid_distance',
+                                         'Reimann_distance','Kullback_distance'])
+    DistWF.connect(CreateWhiteMatterROIMaskNode, 'wm_roi_labels_fn', ComputeStats, 'wm_roi_labelmap')
+    DistWF.connect([(ComputeDistanceImages,ComputeStats,[('fa_distance_image_fn','FA_distance'),
+                                                         ('md_distance_image_fn','MD_distance'),
+                                                         ('rd_distance_image_fn','RD_distance'),
+                                                         ('ad_distance_image_fn','AD_distance'),
+                                                         ('frobenius_distance_image_fn','Frobenius_distance'),
+                                                         ('logeuclid_distance_image_fn','Logeuclid_distance'),
+                                                         ('reimann_distance_image_fn','Reimann_distance'),
+                                                         ('kullback_distance_image_fn','Kullback_distance')])])
+    DistWF.connect(ComputeStats, 'statisticsFile', outputsSpec, 'errorImagesStatisticsFile')
 
     return DistWF

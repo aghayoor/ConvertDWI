@@ -68,6 +68,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                                               'DWI_Baseline','DWI_SR_NN','DWI_SR_IFFT','DWI_SR_TV','DWI_SR_WTV',
                                                               'FA_distance','MD_distance','RD_distance','AD_distance',
                                                               'Frobenius_distance','Logeuclid_distance','Reimann_distance','Kullback_distance',
+                                                              'IDWI_image','PurePlugsMask','WM_ROI_Labelmap','errorImagesStatisticsFile',
                                                               'Baseline_ukfTracts','NN_ukfTracts','IFFT_ukfTracts','TV_ukfTracts','WTV_ukfTracts',
                                                               'Baseline_cst_left','Baseline_cst_right',
                                                               'NN_cst_left','NN_cst_right',
@@ -123,7 +124,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                                ('LobesLabelMapVolume','inputsSpec.LobesLabelMapVolume') # needed to find WM regions in each brain lobe
                                               ]),
                          (PreProcWF, DistWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask'),
-                                              ('outputsSpec.DWI_corrected_alignedSpace_masked','inputsSpec.DWI_corrected_alignedSpace_masked')
+                                              ('outputsSpec.DWI_corrected_alignedSpace_masked','inputsSpec.DWI_corrected_alignedSpace_masked') # needed to compute IDWI
                                              ]),
                          (SRWF, DistWF, [('outputsSpec.DWI_Baseline','inputsSpec.DWI_Baseline'),
                                          ('outputsSpec.DWI_SR_NN','inputsSpec.DWI_SR_NN'),
@@ -138,7 +139,11 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                                 ('outputsSpec.Frobenius_distance','Frobenius_distance'),
                                                 ('outputsSpec.Logeuclid_distance','Logeuclid_distance'),
                                                 ('outputsSpec.Reimann_distance','Reimann_distance'),
-                                                ('outputsSpec.Kullback_distance','Kullback_distance')
+                                                ('outputsSpec.Kullback_distance','Kullback_distance'),
+                                                ('outputsSpec.IDWI_image','IDWI_image'),
+                                                ('outputsSpec.PurePlugsMask','PurePlugsMask'),
+                                                ('outputsSpec.WM_ROI_Labelmap','WM_ROI_Labelmap')
+                                                ('outputsSpec.errorImagesStatisticsFile','errorImagesStatisticsFile')
                                                ]),
                          (inputsSpec, TractWF, [('FSLabelMapVolume','inputsSpec.inputLabelMap')]),
                          (PreProcWF, TractWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWI_brainMask')]),
@@ -193,7 +198,11 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                         ('Outputs/Stats/_BhattacharyyaCoeficient0/','Outputs/Stats/'),
                                         ('Outputs/Stats/_BhattacharyyaCoeficient1/','Outputs/Stats/'),
                                         ('Outputs/Stats/_BhattacharyyaCoeficient2/','Outputs/Stats/'),
-                                        ('Outputs/Stats/_BhattacharyyaCoeficient3/','Outputs/Stats/')
+                                        ('Outputs/Stats/_BhattacharyyaCoeficient3/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_ComputeStatistics0/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_ComputeStatistics1/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_ComputeStatistics2/','Outputs/Stats/'),
+                                        ('Outputs/Stats/_ComputeStatistics3/','Outputs/Stats/')
                                        ]
 
     # Outputs (directory)
@@ -206,6 +215,9 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
     HCPWorkflow.connect(outputsSpec, 'StrippedT2_125', DWIDataSink, 'Outputs.@StrippedT2_125')
     HCPWorkflow.connect(outputsSpec, 'MaximumGradientImage', DWIDataSink, 'Outputs.@MaximumGradientImage')
     HCPWorkflow.connect(outputsSpec, 'EdgeMap', DWIDataSink, 'Outputs.@EdgeMap')
+    HCPWorkflow.connect(outputsSpec, 'IDWI_image', DWIDataSink, 'Outputs.@IDWI_image')
+    HCPWorkflow.connect(outputsSpec, 'PurePlugsMask', DWIDataSink, 'Outputs.@PurePlugsMask')
+    HCPWorkflow.connect(outputsSpec, 'WM_ROI_Labelmap', DWIDataSink, 'Outputs.@WM_ROI_Labelmap')
     # Outputs/SuperResolution
     HCPWorkflow.connect(outputsSpec, 'DWI_Baseline', DWIDataSink, 'Outputs.SuperResolution.@DWI_Baseline')
     HCPWorkflow.connect(outputsSpec, 'DWI_SR_NN', DWIDataSink, 'Outputs.SuperResolution.@DWI_SR_NN')
@@ -243,6 +255,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
     HCPWorkflow.connect(outputsSpec, 'IFFT_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@IFFT_overlap_coeficient')
     HCPWorkflow.connect(outputsSpec, 'TV_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@TV_overlap_coeficient')
     HCPWorkflow.connect(outputsSpec, 'WTV_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@WTV_overlap_coeficient')
+    HCPWorkflow.connect(outputsSpec, 'errorImagesStatisticsFile', DWIDataSink, 'Outputs.Stats.@errorImagesStatisticsFile')
 
     HCPWorkflow.write_graph()
     HCPWorkflow.run()
