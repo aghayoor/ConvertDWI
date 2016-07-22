@@ -142,7 +142,7 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                                 ('outputsSpec.Kullback_distance','Kullback_distance'),
                                                 ('outputsSpec.IDWI_image','IDWI_image'),
                                                 ('outputsSpec.PurePlugsMask','PurePlugsMask'),
-                                                ('outputsSpec.WM_ROI_Labelmap','WM_ROI_Labelmap')
+                                                ('outputsSpec.WM_ROI_Labelmap','WM_ROI_Labelmap'),
                                                 ('outputsSpec.errorImagesStatisticsFile','errorImagesStatisticsFile')
                                                ]),
                          (inputsSpec, TractWF, [('FSLabelMapVolume','inputsSpec.inputLabelMap')]),
