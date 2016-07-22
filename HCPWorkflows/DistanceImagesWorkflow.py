@@ -106,11 +106,15 @@ def CreateDistanceImagesWorkflow(WFname):
         tstart = time.time()
         for i, idx in enumerate(product(xrange(size[0]),xrange(size[1]),xrange(size[2]))):
             frobenius_distance_arr[idx] = distance_euclid(tensors_base[idx], tensors_sr[idx])
-            logeuclid_distance_arr[idx] = distance_logeuclid(tensors_base[idx], tensors_sr[idx])
+            ## HACK: log euclidian metric generates results the same as Reimannian metric,
+            ## but it takes way longer (about 70 times longer!!!)
+            #logeuclid_distance_arr[idx] = distance_logeuclid(tensors_base[idx], tensors_sr[idx])
             reimann_distance_arr[idx] = distance_reimann(tensors_base[idx], tensors_sr[idx])
             kullback_distance_arr[idx] = distance_kullback(tensors_base[idx], tensors_sr[idx])
         elapsed = time.time() - tstart
         print('for loop took: ', elapsed)
+        ## HACK: set values of logeuclid_distance_arr to zero
+        logeuclid_distance_arr.fill(0)
         # mask out the background
         frobenius_distance_arr = np.transpose(frobenius_distance_arr,(2, 1, 0))
         logeuclid_distance_arr = np.transpose(logeuclid_distance_arr,(2, 1, 0))
