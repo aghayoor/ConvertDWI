@@ -22,23 +22,18 @@ def CreateDistanceImagesWorkflow(WFname):
         from scipy.linalg import eigvalsh # eigvalsh(A,B) is joint eigenvalues of A and B
         import SimpleITK as sitk
         from ReadWriteNrrdDWI import ReadNAMICDWIFromNrrd, WriteNAMICDWIToNrrd
-        #########
-        ### distance functions ###
+        ######### distance functions ###
         # Frobenius distance
-        def distance_euclid(tenfit_A, tenfit_B):
-            return np.linalg.norm(tenfit_A.quadratic_form - tenfit_B.quadratic_form, ord='fro')
+        def distance_euclid(A, B):
+            return np.linalg.norm(A - B, ord='fro')
         # Log-Euclidian distance
-        def distance_logeuclid(tenfit_A, tenfit_B):
-            def fro_norm(A,B):
-                return np.linalg.norm(A-B, ord='fro')
-            return fro_norm(logm(tenfit_A.quadratic_form),logm(tenfit_B.quadratic_form))
+        def distance_logeuclid(A, B):
+            return distance_euclid(logm(A),logm(B))
         # Reimannian distance
-        def distance_reimann(tenfit_A, tenfit_B):
-            return np.sqrt((np.log(eigvalsh(tenfit_A.quadratic_form,tenfit_B.quadratic_form))**2).sum())
+        def distance_reimann(A, B):
+            return np.sqrt((np.log(eigvalsh(A,B))**2).sum())
         # Kullback-Leibler distance
-        def distance_kullback(tenfit_A, tenfit_B):
-            A = tenfit_A.quadratic_form
-            B = tenfit_B.quadratic_form
+        def distance_kullback(A, B):
             dim = A.shape[0]
             kl = np.sqrt( np.trace( np.dot(np.linalg.inv(A),B)+np.dot(np.linalg.inv(B),A) ) - 2*dim )
             return 0.5*kl
@@ -46,7 +41,9 @@ def CreateDistanceImagesWorkflow(WFname):
         assert os.path.exists(DWI_baseline), "File not found: %s" % DWI_baseline
         assert os.path.exists(DWI_sr), "File not found: %s" % DWI_sr
         assert os.path.exists(DWI_brainMask), "File not found: %s" % DWI_brainMask
+        # read brain mask file
         mask = sitk.ReadImage(DWI_brainMask)
+        mask_data = sitk.GetArrayFromImage(mask)
         # read DWI nrrd files
         data_base,nrrd_header_base,bvecs_base,bvals_base,grad_idx_base = ReadNAMICDWIFromNrrd(DWI_baseline)
         data_sr,nrrd_header_sr,bvecs_sr,bvals_sr,grad_idx_sr = ReadNAMICDWIFromNrrd(DWI_sr)
@@ -61,47 +58,83 @@ def CreateDistanceImagesWorkflow(WFname):
         gtab_sr = gradient_table(bvals_sr, bvecs_sr)
         ten_sr = TensorModel(gtab_sr)
         tenfit_sr = ten_base.fit(data_sr)
-        # create empty distance images
-        size = [data_base.shape[0],data_base.shape[1],data_base.shape[2]] #data_base.shape[4] is gradient components
-        fa_distance_image = sitk.Image(size, sitk.sitkFloat32)
+        ## create RIS error arrays
+        fa_distance_arr = abs(tenfit_base.fa-tenfit_sr.fa)
+        md_distance_arr = abs(tenfit_base.md-tenfit_sr.md)
+        rd_distance_arr = abs(tenfit_base.rd-tenfit_sr.rd)
+        ad_distance_arr = abs(tenfit_base.ad-tenfit_sr.ad)
+        ## mask out the background
+        fa_distance_arr = np.transpose(fa_distance_arr,(2, 1, 0))
+        md_distance_arr = np.transpose(md_distance_arr,(2, 1, 0))
+        rd_distance_arr = np.transpose(rd_distance_arr,(2, 1, 0))
+        ad_distance_arr = np.transpose(ad_distance_arr,(2, 1, 0))
+        #
+        fa_distance_arr = fa_distance_arr*mask_data
+        md_distance_arr = md_distance_arr*mask_data
+        rd_distance_arr = rd_distance_arr*mask_data
+        ad_distance_arr = ad_distance_arr*mask_data
+        ## clip outliers by computing 'p' percentiles
+        p = 99.7
+        np.clip(fa_distance_arr, fa_distance_arr.min(), np.percentile(fa_distance_arr,p), fa_distance_arr)
+        np.clip(md_distance_arr, md_distance_arr.min(), np.percentile(md_distance_arr,p), md_distance_arr)
+        np.clip(rd_distance_arr, rd_distance_arr.min(), np.percentile(rd_distance_arr,p), rd_distance_arr)
+        np.clip(ad_distance_arr, ad_distance_arr.min(), np.percentile(ad_distance_arr,p), ad_distance_arr)
+        ## create RIS distance images
+        fa_distance_image = sitk.GetImageFromArray(fa_distance_arr)
         fa_distance_image.CopyInformation(mask)
         #
-        md_distance_image = sitk.Image(size, sitk.sitkFloat32)
+        md_distance_image = sitk.GetImageFromArray(md_distance_arr)
         md_distance_image.CopyInformation(mask)
         #
-        rd_distance_image = sitk.Image(size, sitk.sitkFloat32)
+        rd_distance_image = sitk.GetImageFromArray(rd_distance_arr)
         rd_distance_image.CopyInformation(mask)
         #
-        ad_distance_image = sitk.Image(size, sitk.sitkFloat32)
+        ad_distance_image = sitk.GetImageFromArray(ad_distance_arr)
         ad_distance_image.CopyInformation(mask)
         #
-        frobenius_distance_image = sitk.Image(size, sitk.sitkFloat32)
-        frobenius_distance_image.CopyInformation(mask)
-        #
-        logeuclid_distance_image = sitk.Image(size, sitk.sitkFloat32)
-        logeuclid_distance_image.CopyInformation(mask)
-        #
-        reimann_distance_image = sitk.Image(size, sitk.sitkFloat32)
-        reimann_distance_image.CopyInformation(mask)
-        #
-        kullback_distance_image = sitk.Image(size, sitk.sitkFloat32)
-        kullback_distance_image.CopyInformation(mask)
-        #
-        # for loop to fill the distance images
+        size = [data_base.shape[0],data_base.shape[1],data_base.shape[2]] #data_base.shape[4] is gradient components
+        frobenius_distance_arr = np.empty(size, dtype=float)
+        logeuclid_distance_arr = np.empty(size, dtype=float)
+        reimann_distance_arr = np.empty(size, dtype=float)
+        kullback_distance_arr = np.empty(size, dtype=float)
+        # for loop to find other distance images
+        tensors_base = tenfit_base.quadratic_form
+        tensors_sr = tenfit_sr.quadratic_form
         for i in xrange(size[0]):
             for j in xrange(size[1]):
                 for k in xrange(size[2]):
-                    fa_distance_image[i,j,k] = abs(tenfit_base[i,j,k].fa - tenfit_sr[i,j,k].fa)
-                    md_distance_image[i,j,k] = abs(tenfit_base[i,j,k].md - tenfit_sr[i,j,k].md)
-                    rd_distance_image[i,j,k] = abs(tenfit_base[i,j,k].rd - tenfit_sr[i,j,k].rd)
-                    ad_distance_image[i,j,k] = abs(tenfit_base[i,j,k].ad - tenfit_sr[i,j,k].ad)
-                    frobenius_distance_image[i,j,k] = distance_euclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-                    logeuclid_distance_image[i,j,k] = distance_logeuclid(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-                    reimann_distance_image[i,j,k] = distance_reimann(tenfit_base[i,j,k], tenfit_sr[i,j,k])
-                    kullback_distance_image[i,j,k] = distance_kullback(tenfit_base[i,j,k], tenfit_sr[i,j,k])
+                    frobenius_distance_arr[i,j,k] = distance_euclid(tensors_base[i,j,k], tensors_sr[i,j,k])
+                    logeuclid_distance_arr[i,j,k] = distance_logeuclid(tensors_base[i,j,k], tensors_sr[i,j,k])
+                    reimann_distance_arr[i,j,k] = distance_reimann(tensors_base[i,j,k], tensors_sr[i,j,k])
+                    kullback_distance_arr[i,j,k] = distance_kullback(tensors_base[i,j,k], tensors_sr[i,j,k])
+        # mask out the background
+        frobenius_distance_arr = np.transpose(frobenius_distance_arr,(2, 1, 0))
+        logeuclid_distance_arr = np.transpose(logeuclid_distance_arr,(2, 1, 0))
+        reimann_distance_arr = np.transpose(reimann_distance_arr,(2, 1, 0))
+        kullback_distance_arr = np.transpose(kullback_distance_arr,(2, 1, 0))
         #
-        maskf = sitk.Cast(mask, sitk.sitkFloat32)
+        frobenius_distance_arr = frobenius_distance_arr*mask_data
+        logeuclid_distance_arr = logeuclid_distance_arr*mask_data
+        reimann_distance_arr = reimann_distance_arr*mask_data
+        kullback_distance_arr = kullback_distance_arr*mask_data
+        ## clip outliers by computing 'p' percentiles
+        p = 99.7
+        np.clip(frobenius_distance_arr, frobenius_distance_arr.min(), np.percentile(frobenius_distance_arr,p), frobenius_distance_arr)
+        np.clip(logeuclid_distance_arr, logeuclid_distance_arr.min(), np.percentile(logeuclid_distance_arr,p), logeuclid_distance_arr)
+        np.clip(reimann_distance_arr, reimann_distance_arr.min(), np.percentile(reimann_distance_arr,p), reimann_distance_arr)
+        np.clip(kullback_distance_arr, kullback_distance_arr.min(), np.percentile(kullback_distance_arr,p), kullback_distance_arr)
+        ## create RIS distance images
+        frobenius_distance_image = sitk.GetImageFromArray(frobenius_distance_arr)
+        frobenius_distance_image.CopyInformation(mask)
         #
+        logeuclid_distance_image = sitk.GetImageFromArray(logeuclid_distance_arr)
+        logeuclid_distance_image.CopyInformation(mask)
+        #
+        reimann_distance_image = sitk.GetImageFromArray(reimann_distance_arr)
+        reimann_distance_image.CopyInformation(mask)
+        #
+        kullback_distance_image = sitk.GetImageFromArray(kullback_distance_arr)
+        kullback_distance_image.CopyInformation(mask)
         ## create proper SR prefix for output file name
         sr_file_name = os.path.basename(DWI_sr)
         sr_file_name_base = os.path.splitext(sr_file_name)[0]
@@ -115,60 +148,6 @@ def CreateDistanceImagesWorkflow(WFname):
         logeuclid_distance_image_fn = os.path.realpath(sr_name + '_Logeuclid_distance.nrrd')
         reimann_distance_image_fn = os.path.realpath(sr_name + '_Reimann_distance.nrrd')
         kullback_distance_image_fn = os.path.realpath(sr_name + '_Kullback_distance.nrrd')
-        #
-        ## mask out the background
-        fa_distance_image = sitk.Multiply(fa_distance_image,maskf)
-        md_distance_image = sitk.Multiply(md_distance_image,maskf)
-        rd_distance_image = sitk.Multiply(rd_distance_image,maskf)
-        ad_distance_image = sitk.Multiply(ad_distance_image,maskf)
-        frobenius_distance_image = sitk.Multiply(frobenius_distance_image,maskf)
-        logeuclid_distance_image = sitk.Multiply(logeuclid_distance_image,maskf)
-        reimann_distance_image = sitk.Multiply(reimann_distance_image,maskf)
-        kullback_distance_image = sitk.Multiply(kullback_distance_image,maskf)
-        #
-        ## clip outliers by computing 95 percentiles
-        p = 95.0
-        # FA
-        fa_distance_arr = sitk.GetArrayFromImage(fa_distance_image)
-        np.clip(fa_distance_arr, fa_distance_arr.min(), np.percentile(fa_distance_arr,p), fa_distance_arr)
-        fa_distance_image = sitk.GetImageFromArray(fa_distance_arr)
-        fa_distance_image.CopyInformation(mask)
-        # MD
-        md_distance_arr = sitk.GetArrayFromImage(md_distance_image)
-        np.clip(md_distance_arr, md_distance_arr.min(), np.percentile(md_distance_arr,p), md_distance_arr)
-        md_distance_image = sitk.GetImageFromArray(md_distance_arr)
-        md_distance_image.CopyInformation(mask)
-        # RD
-        rd_distance_arr = sitk.GetArrayFromImage(rd_distance_image)
-        np.clip(rd_distance_arr, rd_distance_arr.min(), np.percentile(rd_distance_arr,p), rd_distance_arr)
-        rd_distance_image = sitk.GetImageFromArray(rd_distance_arr)
-        rd_distance_image.CopyInformation(mask)
-        # AD
-        ad_distance_arr = sitk.GetArrayFromImage(ad_distance_image)
-        np.clip(ad_distance_arr, ad_distance_arr.min(), np.percentile(ad_distance_arr,p), ad_distance_arr)
-        ad_distance_image = sitk.GetImageFromArray(ad_distance_arr)
-        ad_distance_image.CopyInformation(mask)
-        # frobenius
-        frobenius_distance_arr = sitk.GetArrayFromImage(frobenius_distance_image)
-        np.clip(frobenius_distance_arr, frobenius_distance_arr.min(), np.percentile(frobenius_distance_arr,p), frobenius_distance_arr)
-        frobenius_distance_image = sitk.GetImageFromArray(frobenius_distance_arr)
-        frobenius_distance_image.CopyInformation(mask)
-        # logeuclid
-        logeuclid_distance_arr = sitk.GetArrayFromImage(logeuclid_distance_image)
-        np.clip(logeuclid_distance_arr, logeuclid_distance_arr.min(), np.percentile(logeuclid_distance_arr,p), logeuclid_distance_arr)
-        logeuclid_distance_image = sitk.GetImageFromArray(logeuclid_distance_arr)
-        logeuclid_distance_image.CopyInformation(mask)
-        # reimann
-        reimann_distance_arr = sitk.GetArrayFromImage(reimann_distance_image)
-        np.clip(reimann_distance_arr, reimann_distance_arr.min(), np.percentile(reimann_distance_arr,p), reimann_distance_arr)
-        reimann_distance_image = sitk.GetImageFromArray(reimann_distance_arr)
-        reimann_distance_image.CopyInformation(mask)
-        # kullback
-        kullback_distance_arr = sitk.GetArrayFromImage(kullback_distance_image)
-        np.clip(kullback_distance_arr, kullback_distance_arr.min(), np.percentile(kullback_distance_arr,p), kullback_distance_arr)
-        kullback_distance_image = sitk.GetImageFromArray(kullback_distance_arr)
-        kullback_distance_image.CopyInformation(mask)
-        #
         ## Write out the distance images
         sitk.WriteImage(fa_distance_image,fa_distance_image_fn)
         sitk.WriteImage(md_distance_image,md_distance_image_fn)
