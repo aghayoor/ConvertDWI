@@ -128,6 +128,7 @@ def CreateDistanceImagesWorkflow(WFname):
         ## clip outliers by computing 'p' percentiles
         p = 99.7
         np.clip(frobenius_distance_arr, frobenius_distance_arr.min(), np.percentile(frobenius_distance_arr,p), frobenius_distance_arr)
+        p = 99.6
         np.clip(logeuclid_distance_arr, logeuclid_distance_arr.min(), np.percentile(logeuclid_distance_arr,p), logeuclid_distance_arr)
         np.clip(reimann_distance_arr, reimann_distance_arr.min(), np.percentile(reimann_distance_arr,p), reimann_distance_arr)
         np.clip(kullback_distance_arr, kullback_distance_arr.min(), np.percentile(kullback_distance_arr,p), kullback_distance_arr)
