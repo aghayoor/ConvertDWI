@@ -18,6 +18,8 @@ def CreateDistanceImagesWorkflow(WFname):
     def ComputeDistanceImages(DWI_baseline,DWI_sr,DWI_brainMask):
         import os
         import numpy as np
+        from itertools import product
+        import time
         from scipy.linalg import logm
         from scipy.linalg import eigvalsh # eigvalsh(A,B) is joint eigenvalues of A and B
         import SimpleITK as sitk
@@ -97,16 +99,18 @@ def CreateDistanceImagesWorkflow(WFname):
         logeuclid_distance_arr = np.empty(size, dtype=float)
         reimann_distance_arr = np.empty(size, dtype=float)
         kullback_distance_arr = np.empty(size, dtype=float)
-        # for loop to find other distance images
+        #
         tensors_base = tenfit_base.quadratic_form
         tensors_sr = tenfit_sr.quadratic_form
-        for i in xrange(size[0]):
-            for j in xrange(size[1]):
-                for k in xrange(size[2]):
-                    frobenius_distance_arr[i,j,k] = distance_euclid(tensors_base[i,j,k], tensors_sr[i,j,k])
-                    logeuclid_distance_arr[i,j,k] = distance_logeuclid(tensors_base[i,j,k], tensors_sr[i,j,k])
-                    reimann_distance_arr[i,j,k] = distance_reimann(tensors_base[i,j,k], tensors_sr[i,j,k])
-                    kullback_distance_arr[i,j,k] = distance_kullback(tensors_base[i,j,k], tensors_sr[i,j,k])
+        # for loop to find other distance images
+        tstart = time.time()
+        for i, idx in enumerate(product(xrange(size[0]),xrange(size[1]),xrange(size[2]))):
+            frobenius_distance_arr[idx] = distance_euclid(tensors_base[idx], tensors_sr[idx])
+            logeuclid_distance_arr[idx] = distance_logeuclid(tensors_base[idx], tensors_sr[idx])
+            reimann_distance_arr[idx] = distance_reimann(tensors_base[idx], tensors_sr[idx])
+            kullback_distance_arr[idx] = distance_kullback(tensors_base[idx], tensors_sr[idx])
+        elapsed = time.time() - tstart
+        print('for loop took: ', elapsed)
         # mask out the background
         frobenius_distance_arr = np.transpose(frobenius_distance_arr,(2, 1, 0))
         logeuclid_distance_arr = np.transpose(logeuclid_distance_arr,(2, 1, 0))
