@@ -115,7 +115,7 @@ def CreateTractographyWorkflow(WFname):
         srfn = os.path.basename(sr_cst_left)
         srfnbase = os.path.splitext(srfn)[0]
         srLabel = srfnbase.split('_',1)[0]
-        fn = srLabel + '.csv'
+        fn = srLabel + '_BhattacharyyaCoeficient.csv'
         output_csv_file = os.path.join(os.getcwd(), fn)
         # write the stats list
         writeLabelStatistics(output_csv_file,statsList)
