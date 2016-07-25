@@ -61,45 +61,36 @@ def CreateTractographyWorkflow(WFname):
         def ComputeBhattacharyyaCoeficient(baseline_bundle, sr_bundle):
             import vtk
             import numpy as np
-            ##
-            def ReturnDistributionInEachCoordinate(bundle):
-                from scipy import stats
-                numPoints = bundle.GetNumberOfPoints()
-                points = bundle.GetPoints()
-                x_arr = np.array([points.GetPoint(i)[0] for i in xrange(numPoints)])
-                y_arr = np.array([points.GetPoint(i)[1] for i in xrange(numPoints)])
-                z_arr = np.array([points.GetPoint(i)[2] for i in xrange(numPoints)])
-                x = np.linspace(x_arr.min(), x_arr.max(), 100)
-                y = np.linspace(y_arr.min(), y_arr.max(), 100)
-                z = np.linspace(z_arr.min(), z_arr.max(), 100)
-                kde_x = stats.gaussian_kde(x_arr)
-                kde_y = stats.gaussian_kde(y_arr)
-                kde_z = stats.gaussian_kde(z_arr)
-                p_x = kde_x(x)
-                p_y = kde_y(y)
-                p_z = kde_z(z)
-                return p_x, p_y, p_z
             ## read in each fiber bundle
             reader_gs = vtk.vtkXMLPolyDataReader()
             reader_gs.SetFileName(baseline_bundle)
             reader_gs.Update()
-            gs = reader_gs.GetOutput()
+            gs_bundle = reader_gs.GetOutput()
             #
             reader_sr = vtk.vtkXMLPolyDataReader()
             reader_sr.SetFileName(sr_bundle)
             reader_sr.Update()
-            sr = reader_sr.GetOutput()
-            ## Use ksdensity to estimate probability density function for the sample data in each coordinate
-            [p_gs_x, p_gs_y, p_gs_z] = ReturnDistributionInEachCoordinate(gs)
-            [p_sr_x, p_sr_y, p_sr_z] = ReturnDistributionInEachCoordinate(sr)
-            BC = (1.0/3.0)*( np.sum(np.sqrt(p_gs_x * p_sr_x)) + np.sum(np.sqrt(p_gs_y * p_sr_y)) + np.sum(np.sqrt(p_gs_z * p_sr_z)) )
-            return BC
+            sr_bundle = reader_sr.GetOutput()
+            #
+            gs_pts = np.array([gs_bundle.GetPoint(i) for i in xrange(gs_bundle.GetNumberOfPoints())])
+            sr_pts = np.array([sr_bundle.GetPoint(i) for i in xrange(sr_bundle.GetNumberOfPoints())])
+            #
+            mn = np.minimum(gs_pts.min(0), sr_pts.min(0))
+            mx = np.maximum(gs_pts.max(0), sr_pts.max(0))
+            bins = np.ceil((mx - mn))
+            #
+            gs_hist = np.array([ np.histogram(gs_pts[:,i], bins=bins[i], density=True, range=(mn[i], mx[i]))[0] for i in xrange(3) ])
+            sr_hist = np.array([ np.histogram(sr_pts[:,i], bins=bins[i], density=True, range=(mn[i], mx[i]))[0] for i in xrange(3) ])
+            #
+            coefs = np.array([ np.sqrt( (gs_hist[i]*sr_hist[i])/(gs_hist[i].sum()*sr_hist[i].sum()) ).sum() for i in xrange(3) ])
+            #print(coefs)
+            return coefs.mean()
             ##
         def writeLabelStatistics(filename,statsList):
             import csv
-            label = os.path.splitext(os.path.basename(filename))[0]
+            label = os.path.splitext(os.path.basename(filename))[0].split('_',1)[0]
             with open(filename, 'wb') as lf:
-                headerdata = [['#Label', 'BC_left.cst', 'BC_right.cst', 'BC_cst']]
+                headerdata = [['#Label', 'left.cst', 'right.cst', 'cst']]
                 wr = csv.writer(lf, delimiter=',')
                 wr.writerows(headerdata)
                 wr.writerows([[label] + statsList])
