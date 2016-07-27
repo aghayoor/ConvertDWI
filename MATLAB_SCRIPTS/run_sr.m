@@ -32,7 +32,7 @@ edgemap = in_edgemap.data;
 
 %%
 tic
-[normalizedSignal,estimatedNNsignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI.data, edgemap, 2);
+[normalizedSignal,estimatedNNsignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate(reformattedDWI, edgemap, 2);
 toc
 
 %% Write output DWI_Baseline

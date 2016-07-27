@@ -1,7 +1,8 @@
-function [normalizedSignal,estimatedNNsignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( DWIIntensityData, edgemap, samplingFactor )
+function [normalizedSignal,estimatedNNsignal,estimatedIFFTsignal,estimatedTVsignal,estimatedWTVsignal] = doSRestimate( dwi, edgemap, samplingFactor )
 % param: DWIIntensityData - is the dwi 4D data that is cleaned and normalized
 % param: edgemap - a weight matrix derived from anatomical edge locations
 
+DWIIntensityData = dwi.data;
 [nx, ny, nz, numComponents]=size(DWIIntensityData);
 [mnx,mny,mnz] =size(edgemap);
 
@@ -35,7 +36,8 @@ lowpass_inds = get_lowpass_inds(k,lowres);
 [A,At] = defAAt_fourier(lowpass_inds, highres);
 
 %% HACK for debugging
-%numComponents=2;
+%numComponents=2; % processed compoenent
+%fn = 0; %figure number
 
 % parfor causes application out of memory!
 % use for temporarly
@@ -68,21 +70,35 @@ for c=1:numComponents
     [X_TV, cost] = OpWeightedL2(b,ones(highres),lambda,A,At,highres,Niter,tol,gam);
     estimatedTVsignal(:,:,:,c) = X_TV;
     %% Run New Weighted TV algorithm
-    % lambda = 5e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
-    % Niter = 200;  %number of iterations
-    % gam = 0.01; %set in the range [0.01,1].
-    % Xinit = real(At(b)); %initialization
-    % [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemap,lambda,A,At,highres,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
-    %
-    lambda = 1e-3; %regularization parameter
-    Niter = 100;   %number of iterations
-    gam = 1;       %ADMM parameter, in range [0.1,10]
-    tol = 1e-8;    %convergence tolerance
-    [X_WTV, cost] = OpWeightedL2(b,edgemap,lambda,A,At,highres,Niter,tol,gam);
-    estimatedWTVsignal(:,:,:,c) = X_WTV;
-
+    gradient_magnitude = norm(dwi.gradientdirections(c,:));
+    if gradient_magnitude < 0.05 %% this component is a zero gradient %%
+    %   lambda = 5e-4; %regularization parameter (typically in the range [1e-2,1], if original image scaled to [0,1])
+    %   Niter = 200;  %number of iterations
+    %   gam = 0.01; %set in the range [0.01,1].
+    %   Xinit = real(At(b)); %initialization
+    %   [X_WTV, cost] = OpWeightedTV_PD_AHMOD(b,edgemap,lambda,A,At,highres,Niter,gam,Xinit); %see comments inside OpWeightedTV_PD_AHMOD.m
+    %   %%%%
+        lambda = 1e-3; %regularization parameter
+        Niter = 100;   %number of iterations
+        gam = 1;       %ADMM parameter, in range [0.1,10]
+        tol = 1e-8;    %convergence tolerance
+        [X_WTV, cost] = OpWeightedL2(b,edgemap,lambda,A,At,highres,Niter,tol,gam);
+        estimatedWTVsignal(:,:,:,c) = X_WTV;
+    else %% this component is a non-zero gradient %%
+        % diffusion component has lots of more high freqeuncy data, and
+        % edges can be perturbed, so we need an edgemap that puts less
+        % emphasis on edges
+        emap = edgemap + std(edgemap(:));
+        emap(emap>1) = 1; % the max value should always be one
+        %
+        lambda = 1e-3; %regularization parameter
+        Niter = 100;   %number of iterations
+        gam = 1;       %ADMM parameter, in range [0.1,10]
+        tol = 1e-8;    %convergence tolerance
+        [X_WTV, cost] = OpWeightedL2(b,emap,lambda,A,At,highres,Niter,tol,gam);
+        estimatedWTVsignal(:,:,:,c) = X_WTV;
+    end
     %% Just for sanity check and debugging
-%     fn = 0; %figure number
 %     if(c<=2)
 %         X0_size = size(X0);
 %         X0_2d = X0(:,:,round(X0_size(3)/2));
