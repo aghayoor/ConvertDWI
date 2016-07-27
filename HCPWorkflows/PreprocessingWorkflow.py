@@ -107,9 +107,7 @@ def CreatePreprocessingWorkFlow(WFname):
         labelsMap = sitk.ReadImage(brainLabels)
         brain_mask = labelsMap>0
         ## dilate brain mask
-        #dilateFilter = sitk.BinaryDilateImageFilter()
-        #dilateFilter.SetKernelRadius(2)
-        #brain_mask = dilateFilter.Execute( brain_mask )
+        brain_mask = sitk.BinaryDilate(brain_mask,2)
         ##
         if (headImage.GetSpacing() != brain_mask.GetSpacing()):
             headImage = LinearResampling(headImage,brain_mask)
@@ -118,34 +116,25 @@ def CreatePreprocessingWorkFlow(WFname):
         sitk.WriteImage(brainImage, outputVolume)
         return outputVolume
 
-    def MakeBrainStripperInputFilesList(inputT1, inputT2):
+    def MakeInputMRList(inputT1, inputT2):
         import os
         assert os.path.exists(inputT1), "File not found: %s" % inputT1
         assert os.path.exists(inputT2), "File not found: %s" % inputT2
         imagesList = [inputT1, inputT2]
         return imagesList
 
-    def MakeResamplerInFileList(inputT1, inputT2, inputLabelMap):
-        imagesList = [inputT1, inputT2, inputLabelMap]
-        return imagesList
-
-    def MakeGenerateEdgeMapInputList(inputT1, inputT2, inputBrainMask):
+    def MakeResamplerInFilesList(inputT1, inputT2, inputLabelMap):
         import os
         import SimpleITK as sitk
         assert os.path.exists(inputT1), "File not found: %s" % inputT1
         assert os.path.exists(inputT2), "File not found: %s" % inputT2
-        assert os.path.exists(inputBrainMask), "File not found: %s" % inputBrainMask
-        brainMask = sitk.ReadImage(inputBrainMask)
-        brainMask = brainMask > 0
-        t1 = sitk.ReadImage(inputT1)
-        t1_masked = sitk.Cast(t1,sitk.sitkInt16) * sitk.Cast(brainMask,sitk.sitkInt16)
-        outputT1 = os.path.join(os.getcwd(), 'StrippedT1_125.nrrd')
-        sitk.WriteImage(t1_masked,outputT1)
-        t2 = sitk.ReadImage(inputT2)
-        t2_masked = sitk.Cast(t2,sitk.sitkInt16) * sitk.Cast(brainMask,sitk.sitkInt16)
-        outputT2 = os.path.join(os.getcwd(), 'StrippedT2_125.nrrd')
-        sitk.WriteImage(t2_masked,outputT2)
-        imagesList = [outputT1, outputT2]
+        assert os.path.exists(inputLabelMap), "File not found: %s" % inputLabelMap
+        labelsMap = sitk.ReadImage(inputLabelMap)
+        brain_mask = labelsMap>0
+        brain_mask = sitk.BinaryDilate(brain_mask,2)
+        brainMask = os.path.realpath('brain_mask.nrrd')
+        sitk.WriteImage(brain_mask, brainMask)
+        imagesList = [inputT1, inputT2, brainMask]
         return imagesList
 
     # This function helps to pick desirable output from the output list
@@ -214,7 +203,7 @@ def CreatePreprocessingWorkFlow(WFname):
     #
 
     # Step3_1: remove the skull from the T2 volume
-    MakeBrainStripperInputFilesListNode = pe.Node(Function(function=MakeBrainStripperInputFilesList,
+    MakeBrainStripperInputFilesListNode = pe.Node(Function(function=MakeInputMRList,
                                                            input_names=['inputT1','inputT2'],
                                                            output_names=['imagesList']),
                                                   name="MakeBrainStripperInputFilesListNode")
@@ -270,7 +259,7 @@ def CreatePreprocessingWorkFlow(WFname):
     ##
     ## STEP 4: Resample T1/T2/Labelmap to the voxel space of aligned DWI
     ##
-    MakeResamplerInFilesListNode = pe.Node(Function(function=MakeResamplerInFileList,
+    MakeResamplerInFilesListNode = pe.Node(Function(function=MakeResamplerInFilesList,
                                                     input_names=['inputT1','inputT2','inputLabelMap'],
                                                     output_names=['imagesList']),
                                            name="MakeResamplerInFilesListNode")
@@ -290,6 +279,11 @@ def CreatePreprocessingWorkFlow(WFname):
     # warpTransform is identity
     PreProcWF.connect(gtractResampleDWIInPlace_Trigid,'outputResampledB0',ResampleToAlignedDWIResolution,'referenceVolume')
     PreProcWF.connect(MakeResamplerInFilesListNode,'imagesList',ResampleToAlignedDWIResolution,'inputVolume')
+    # pass output T1/T2/DWIMask to outputSpecs
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 0),
+                      outputsSpec, 'StrippedT1_125')
+    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 1),
+                      outputsSpec, 'StrippedT2_125')
     PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 2),
                       outputsSpec, 'DWIBrainMask')
 
@@ -298,21 +292,14 @@ def CreatePreprocessingWorkFlow(WFname):
     ##
 
     ## Step5_1: Make a list for input structral MR images
-    MakeGenerateEdgeMapInputListNode = pe.Node(Function(function=MakeGenerateEdgeMapInputList,
-                                                    input_names=['inputT1','inputT2','inputBrainMask'],
+    MakeGenerateEdgeMapInputListNode = pe.Node(Function(function=MakeInputMRList,
+                                                    input_names=['inputT1','inputT2'],
                                                     output_names=['imagesList']),
                                            name="MakeGenerateEdgeMapInputList")
     PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 0),
                       MakeGenerateEdgeMapInputListNode,'inputT1')
     PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 1),
                       MakeGenerateEdgeMapInputListNode,'inputT2')
-    PreProcWF.connect(ResampleToAlignedDWIResolution, ('outputVolume', pickFromList, 2),
-                      MakeGenerateEdgeMapInputListNode,'inputBrainMask')
-    # pass output T1/T2 to outputSpecs
-    PreProcWF.connect(MakeGenerateEdgeMapInputListNode, ('imagesList', pickFromList, 0),
-                      outputsSpec, 'StrippedT1_125')
-    PreProcWF.connect(MakeGenerateEdgeMapInputListNode, ('imagesList', pickFromList, 1),
-                      outputsSpec, 'StrippedT2_125')
 
     ## Step5_2: Generate EdgeMap
     GEM = pe.Node(interface=GenerateEdgeMapImage(), name="EdgeMapImage")
