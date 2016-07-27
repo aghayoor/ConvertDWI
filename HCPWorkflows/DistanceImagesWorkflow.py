@@ -180,8 +180,19 @@ def CreateDistanceImagesWorkflow(WFname):
         imagesList = [DWI_SR_NN, DWI_SR_IFFT, DWI_SR_TV, DWI_SR_WTV]
         return imagesList
 
-    def MakePurePlugsMaskInputList(inputT1, inputT2, inputIDWI):
-        imagesList = [inputT1, inputT2, inputIDWI]
+    def MakePurePlugsMaskInputList(inputT1, inputT2, inputB0):
+        #imagesList = [inputT1, inputT2, inputB0]
+        # resample the average B0 image by a factor of 2 (create low-res B0)
+        # now pure plugs mask will be created from averge B0 and its low-res
+        # (inputT1/T2 are not used anymore)
+        import os
+        import SimpleITK as sitk
+        assert os.path.exists(inputB0), "File not found: %s" % inputB0
+        avgB0 = sitk.ReadImage(inputB0)
+        avgB0_lr = sitk.Shrink(avgB0,[2,2,2])
+        avgB0_lr_fn = os.path.realpath('average_B0_lr.nrrd')
+        sitk.WriteImage(avgB0_lr,avgB0_lr_fn)
+        imagesList = [inputB0, avgB0_lr_fn]
         return imagesList
 
     def CreateBrainPurePlugsMask(PurePlugsMask, DWI_brainMask):
@@ -189,8 +200,17 @@ def CreateDistanceImagesWorkflow(WFname):
         import SimpleITK as sitk
         assert os.path.exists(PurePlugsMask), "File not found: %s" % PurePlugsMask
         assert os.path.exists(DWI_brainMask), "File not found: %s" % DWI_brainMask
-        ppmask = sitk.ReadImage(PurePlugsMask)
-        brainmask = sitk.ReadImage(DWI_brainMask)
+        ##
+        def ResampleMask(in_mask, ref_mask):
+            resampler = sitk.ResampleImageFilter()
+            resampler.SetReferenceImage(ref_mask)
+            resampler.SetInterpolator(sitk.sitkLabelGaussian) # Smoothly interpolate multi-label images
+            res_mask = resampler.Execute(in_mask)
+            return res_mask
+        ##
+        ppmask = sitk.ReadImage(PurePlugsMask) # 2.5x2.5x2.5
+        brainmask = sitk.ReadImage(DWI_brainMask) # 1.25x1.25x1.25
+        ppmask = ResampleMask(ppmask, brainmask)
         brainPurePlugs = ppmask * sitk.Cast(brainmask,sitk.sitkUInt8)
         BrainPurePlugsMask = os.path.realpath('BrainPurePlugsMask.nrrd')
         sitk.WriteImage(brainPurePlugs,BrainPurePlugsMask)
@@ -423,12 +443,12 @@ def CreateDistanceImagesWorkflow(WFname):
 
     ## Step 4_1: Make a list for input modality list
     MakePurePlugsMaskInputListNode = pe.Node(Function(function=MakePurePlugsMaskInputList,
-                                                      input_names=['inputT1','inputT2','inputIDWI'],
+                                                      input_names=['inputT1','inputT2','inputB0'],
                                                       output_names=['imagesList']),
                                              name="MakePurePlugsMaskInputList")
     DistWF.connect(inputsSpec, 'inputT1', MakePurePlugsMaskInputListNode, 'inputT1')
     DistWF.connect(inputsSpec, 'inputT2', MakePurePlugsMaskInputListNode, 'inputT2')
-    DistWF.connect(DTIEstim, 'idwi', MakePurePlugsMaskInputListNode, 'inputIDWI')
+    DistWF.connect(DTIEstim, 'B0', MakePurePlugsMaskInputListNode, 'inputB0')
 
     ## Step 4_2: Create the mask
     PurePlugsMaskNode = pe.Node(interface=GeneratePurePlugMask(), name="PurePlugsMask")
