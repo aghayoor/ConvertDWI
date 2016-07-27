@@ -452,7 +452,7 @@ def CreateDistanceImagesWorkflow(WFname):
 
     ## Step 4_2: Create the mask
     PurePlugsMaskNode = pe.Node(interface=GeneratePurePlugMask(), name="PurePlugsMask")
-    PurePlugsMaskNode.inputs.threshold = 0.15
+    PurePlugsMaskNode.inputs.threshold = 0.2
     PurePlugsMaskNode.inputs.outputMaskFile = 'PurePlugsMask.nrrd'
     DistWF.connect(MakePurePlugsMaskInputListNode, 'imagesList', PurePlugsMaskNode, 'inputImageModalities')
 
