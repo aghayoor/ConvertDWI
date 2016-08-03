@@ -316,12 +316,6 @@ if __name__ == '__main__':
 
   CUSTOM_ENVIRONMENT=dict()
 
-  # Platform specific information
-  #     Prepend the python search paths
-  PYTHON_AUX_PATHS = PYTHON_AUX_PATHS.split(':')
-  PYTHON_AUX_PATHS.extend(sys.path)
-  sys.path = PYTHON_AUX_PATHS
-
   import SimpleITK as sitk
   import nipype
   from nipype.interfaces import ants
@@ -332,6 +326,13 @@ if __name__ == '__main__':
   import nipype.pipeline.engine as pe  # pypeline engine
   import nipype.interfaces.matlab as matlab
   from nipype.interfaces.semtools import *
+
+  # Platform specific information
+  #     Prepend the python search paths
+  PYTHON_AUX_PATHS = PYTHON_AUX_PATHS.split(':')
+  PYTHON_AUX_PATHS.extend(sys.path)
+  sys.path = PYTHON_AUX_PATHS
+
   #####################################################################################
   from PreprocessingWorkflow import CreatePreprocessingWorkFlow
   from SuperResolutionWorkflow import CreateSuperResolutionWorkflow

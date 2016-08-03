@@ -58,50 +58,87 @@ def CreateTractographyWorkflow(WFname):
         # gs: gold standard, sr: super-resolution reconstructed
         import os
         #########
-        def ComputeBhattacharyyaCoeficient(baseline_bundle, sr_bundle):
-            import vtk
+        def ComputeBhattacharyyaCoeficient(gs_bundle,sr_bundle):
+            from tract_querier import tract_math, tractography
             import numpy as np
-            ## read in each fiber bundle
-            reader_gs = vtk.vtkXMLPolyDataReader()
-            reader_gs.SetFileName(baseline_bundle)
-            reader_gs.Update()
-            gs_bundle = reader_gs.GetOutput()
+            ###
+            def AlignFiber(tract):
+                out_tract = tract
+                vecs = np.diff(tract, axis=0)
+                avg_vec = np.mean(vecs, axis=0)
+                dots = np.array([ np.dot(avg_vec,[1,0,0]), np.dot(avg_vec,[0,1,0]), np.dot(avg_vec,[0,0,1]) ])
+                idx = np.argmax(np.abs(dots))
+                if (dots[idx] < 0):
+                    out_tract = tract[::-1]
+                return out_tract
             #
-            reader_sr = vtk.vtkXMLPolyDataReader()
-            reader_sr.SetFileName(sr_bundle)
-            reader_sr.Update()
-            sr_bundle = reader_sr.GetOutput()
+            def InterpolateFiber(tract):
+                new_tract = tract
+                # find point distances
+                d = np.diff(tract, axis=0)
+                pointdists = np.hypot(d[:,0], d[:,1], d[:,2])
+                dist_threshold = min(pointdists.sum()/len(pointdists),1)
+                offset = 0
+                for i in xrange(len(pointdists)):
+                    if pointdists[i] > dist_threshold:
+                        new_p = (tract[i+1]+tract[i])/2
+                        new_tract = np.insert(new_tract,i+1+offset,new_p,axis=0)
+                        offset += 1
+                return new_tract
             #
-            gs_pts = np.array([gs_bundle.GetPoint(i) for i in xrange(gs_bundle.GetNumberOfPoints())])
-            sr_pts = np.array([sr_bundle.GetPoint(i) for i in xrange(sr_bundle.GetNumberOfPoints())])
+            def returnBundlePoints(bundle):
+                in_tractography = tractography.tractography_from_files(bundle)
+                tracts = in_tractography.tracts()
+                ## sort all tracts direction to positive coordinate of their dominant orientation
+                ## then interpolate tracts to make sure they are approximately equally placed
+                for i in xrange(len(tracts)):
+                    tracts[i] = AlignFiber(tracts[i])
+                    tracts[i] = InterpolateFiber(tracts[i])
+                #
+                tracts_last_quarter = [tracts[i][4*len(tracts[i])/5:] for i in xrange(len(tracts))]
+                #
+                pts = np.vstack(tracts)
+                pts_last_quarter = np.vstack(tracts_last_quarter)
+                return pts, pts_last_quarter
             #
-            mn = np.minimum(gs_pts.min(0), sr_pts.min(0))
-            mx = np.maximum(gs_pts.max(0), sr_pts.max(0))
-            bins = np.ceil((mx - mn))
+            def returnBhattCoef(gs_pts,sr_pts):
+                from scipy import stats
+                gs_xyz = np.array([np.linspace(gs_pts.min(0)[i],gs_pts.max(0)[i],100) for i in xrange(3)])
+                sr_xyz = np.array([np.linspace(sr_pts.min(0)[i],sr_pts.max(0)[i],100) for i in xrange(3)])
+                #
+                gs_kde = np.array([ stats.gaussian_kde(gs_pts[:,i]) for i in xrange(3) ])
+                gs_p = np.array([ gs_kde[i](gs_xyz[i]) for i in xrange(3) ])
+                gs_p = np.array([gs_p[i]/gs_p.sum(1)[i] for i in xrange(3)])
+                #
+                sr_kde = np.array([ stats.gaussian_kde(sr_pts[:,i]) for i in xrange(3) ])
+                sr_p = np.array([ sr_kde[i](sr_xyz[i]) for i in xrange(3) ])
+                sr_p = np.array([sr_p[i]/sr_p.sum(1)[i] for i in xrange(3)])
+                #
+                coefs = np.array([ np.sqrt(gs_p[i]*sr_p[i]).sum() for i in xrange(3) ])
+                return coefs.mean()
+            ###
+            [gs_pts, gs_pts_last_quarter] = returnBundlePoints(gs_bundle)
+            [sr_pts, sr_pts_last_quarter] = returnBundlePoints(sr_bundle)
             #
-            gs_hist = np.array([ np.histogram(gs_pts[:,i], bins=bins[i], density=True, range=(mn[i], mx[i]))[0] for i in xrange(3) ])
-            sr_hist = np.array([ np.histogram(sr_pts[:,i], bins=bins[i], density=True, range=(mn[i], mx[i]))[0] for i in xrange(3) ])
-            #
-            coefs = np.array([ np.sqrt( (gs_hist[i]*sr_hist[i])/(gs_hist[i].sum()*sr_hist[i].sum()) ).sum() for i in xrange(3) ])
-            #print(coefs)
-            return coefs.mean()
-            ##
+            coef = returnBhattCoef(gs_pts,sr_pts)
+            coef_last_quarter = returnBhattCoef(gs_pts_last_quarter,sr_pts_last_quarter)
+            return [coef,coef_last_quarter]
+        #########
         def writeLabelStatistics(filename,statsList):
             import csv
             label = os.path.splitext(os.path.basename(filename))[0].split('_',1)[0]
             with open(filename, 'wb') as lf:
-                headerdata = [['#Label', 'left.cst', 'right.cst', 'cst']]
+                headerdata = [['#Label', 'cst_left', 'cst_right', 'cst', 'cst_left_top', 'cst_right_top', 'cst_top']]
                 wr = csv.writer(lf, delimiter=',')
                 wr.writerows(headerdata)
                 wr.writerows([[label] + statsList])
         #########
         # compute Bhattacharyya Coeficient for cst.left/right/total
-        bc_l = ComputeBhattacharyyaCoeficient(gs_cst_left,sr_cst_left)
-        if bc_l > 1: bc_l = 1
-        bc_r = ComputeBhattacharyyaCoeficient(gs_cst_right,sr_cst_right)
-        if bc_r > 1: bc_r = 1
+        bc_l,bc_l_q = ComputeBhattacharyyaCoeficient(gs_cst_left,sr_cst_left)
+        bc_r,bc_r_q = ComputeBhattacharyyaCoeficient(gs_cst_right,sr_cst_right)
         bc_total = (bc_l + bc_r)/2.0
-        statsList = [format(bc_l,'.4f'), format(bc_r,'.4f'), format(bc_total,'.4f')]
+        bc_total_q = (bc_l_q + bc_r_q)/2.0
+        statsList = [format(bc_l,'.4f'), format(bc_r,'.4f'), format(bc_total,'.4f'), format(bc_l_q,'.4f'), format(bc_r_q,'.4f'), format(bc_total_q,'.4f')]
         # create output file name
         srfn = os.path.basename(sr_cst_left)
         srfnbase = os.path.splitext(srfn)[0]
@@ -112,6 +149,7 @@ def CreateTractographyWorkflow(WFname):
         writeLabelStatistics(output_csv_file,statsList)
         assert os.path.isfile(output_csv_file), "Output Bhattacharyya coeficient file is not found: %s" % output_csv_file
         return output_csv_file
+
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\#
     TractWF = pe.Workflow(name=WFname)
