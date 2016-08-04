@@ -35,7 +35,7 @@ def CreateTractographyWorkflow(WFname):
         tract_querier.inputs.input_atlas = input_atlas
         tract_querier.inputs.input_tractography = input_tractography
         tract_querier.inputs.out_prefix = out_prefix
-        tract_querier.inputs.queries = ['cst.left' ,'cst.right']
+        tract_querier.inputs.queries = ['cst.left','cst.right','af.left','af.right']
         tract_querier.run()
         # check outputs
         output_cst_left_name = out_prefix + '_' + 'cst.left.vtp'
@@ -44,17 +44,26 @@ def CreateTractographyWorkflow(WFname):
         output_cst_right = os.path.join(os.getcwd(), output_cst_right_name)
         assert os.path.isfile(output_cst_left), "Output cst tract file is not found: %s" % output_cst_left
         assert os.path.isfile(output_cst_right), "Output cst tract file is not found: %s" % output_cst_right
-        return [output_cst_left,output_cst_right]
+        #
+        output_af_left_name = out_prefix + '_' + 'af.left.vtp'
+        output_af_right_name = out_prefix + '_' + 'af.right.vtp'
+        output_af_left = os.path.join(os.getcwd(), output_af_left_name)
+        output_af_right = os.path.join(os.getcwd(), output_af_right_name)
+        assert os.path.isfile(output_af_left), "Output af tract file is not found: %s" % output_af_left
+        assert os.path.isfile(output_af_right), "Output af tract file is not found: %s" % output_af_right
+        #
+        return [output_cst_left,output_cst_right,output_af_left,output_af_right]
 
     # This function helps to pick desirable output from the output list
     def pickFromList(inlist,item):
         return inlist[item]
 
-    def MakeInputCSTList(NN_cst, IFFT_cst, TV_cst, WTV_cst):
-        outputList = [NN_cst, IFFT_cst, TV_cst, WTV_cst]
+    def MakeInputTractsList(NN_tract, IFFT_tract, TV_tract, WTV_tract):
+        outputList = [NN_tract, IFFT_tract, TV_tract, WTV_tract]
         return outputList
 
-    def CSTOverlap(gs_cst_left, gs_cst_right, sr_cst_left, sr_cst_right):
+    def TractsOverlap(gs_cst_left, gs_cst_right, sr_cst_left, sr_cst_right,
+                      gs_af_left, gs_af_right, sr_af_left, sr_af_right):
         # gs: gold standard, sr: super-resolution reconstructed
         import os
         #########
@@ -128,17 +137,26 @@ def CreateTractographyWorkflow(WFname):
             import csv
             label = os.path.splitext(os.path.basename(filename))[0].split('_',1)[0]
             with open(filename, 'wb') as lf:
-                headerdata = [['#Label', 'cst_left', 'cst_right', 'cst', 'cst_left_top', 'cst_right_top', 'cst_top']]
+                headerdata = [['#Label', 'cst_left', 'cst_right', 'cst',
+                               'cst_left_top', 'cst_right_top', 'cst_top',
+                               'af_left', 'af_right', 'af']]
                 wr = csv.writer(lf, delimiter=',')
                 wr.writerows(headerdata)
                 wr.writerows([[label] + statsList])
         #########
         # compute Bhattacharyya Coeficient for cst.left/right/total
-        bc_l,bc_l_q = ComputeBhattacharyyaCoeficient(gs_cst_left,sr_cst_left)
-        bc_r,bc_r_q = ComputeBhattacharyyaCoeficient(gs_cst_right,sr_cst_right)
-        bc_total = (bc_l + bc_r)/2.0
-        bc_total_q = (bc_l_q + bc_r_q)/2.0
-        statsList = [format(bc_l,'.4f'), format(bc_r,'.4f'), format(bc_total,'.4f'), format(bc_l_q,'.4f'), format(bc_r_q,'.4f'), format(bc_total_q,'.4f')]
+        bc_cst_left,bc_cst_left_top = ComputeBhattacharyyaCoeficient(gs_cst_left,sr_cst_left)
+        bc_cst_right,bc_cst_right_top = ComputeBhattacharyyaCoeficient(gs_cst_right,sr_cst_right)
+        bc_cst_total = (bc_cst_left + bc_cst_right)/2.0
+        bc_cst_total_top = (bc_cst_left_top + bc_cst_right_top)/2.0
+        # compute Bhattacharyya Coeficient for af.left/right/total
+        bc_af_left = ComputeBhattacharyyaCoeficient(gs_af_left,sr_af_left)
+        bc_af_right = ComputeBhattacharyyaCoeficient(gs_af_right,sr_af_right)
+        bc_af_total = (bc_cst_left + bc_cst_right)/2.0
+        #
+        statsList = [format(bc_cst_left,'.4f'), format(bc_cst_right,'.4f'), format(bc_cst_total,'.4f'),
+                     format(bc_cst_left_top,'.4f'), format(bc_cst_right_top,'.4f'), format(bc_cst_total_top,'.4f'),
+                     format(bc_af_left,'.4f'), format(bc_af_right,'.4f'), format(bc_af_total,'.4f')]
         # create output file name
         srfn = os.path.basename(sr_cst_left)
         srfnbase = os.path.splitext(srfn)[0]
@@ -170,10 +188,15 @@ def CreateTractographyWorkflow(WFname):
                                                               'TV_ukfTracts',
                                                               'WTV_ukfTracts',
                                                               'Baseline_cst_left','Baseline_cst_right',
+                                                              'Baseline_af_left','Baseline_af_right',
                                                               'NN_cst_left','NN_cst_right',
+                                                              'NN_af_left','NN_af_right',
                                                               'IFFT_cst_left','IFFT_cst_right',
+                                                              'IFFT_af_left','IFFT_af_right',
                                                               'TV_cst_left','TV_cst_right',
+                                                              'TV_af_left','TV_af_right',
                                                               'WTV_cst_left','WTV_cst_right',
+                                                              'WTV_af_left','WTV_af_right',
                                                               'NN_overlap_coeficient',
                                                               'IFFT_overlap_coeficient',
                                                               'TV_overlap_coeficient',
@@ -225,66 +248,104 @@ def CreateTractographyWorkflow(WFname):
     ##
     tract_querier = pe.MapNode(interface=Function(function = runWMQL,
                                                   input_names=['input_tractography','input_atlas'],
-                                                  output_names=['output_cst_left','output_cst_right']),
+                                                  output_names=['output_cst_left','output_cst_right',
+                                                                'output_af_left','output_af_right']),
                                name="tract_querier", iterfield=['input_tractography'])
     TractWF.connect(UKFNode,'tracts',tract_querier,'input_tractography')
     TractWF.connect(inputsSpec,'inputLabelMap',tract_querier,'input_atlas')
-    # baseline cst
+    # baseline cst/af
     TractWF.connect(tract_querier,('output_cst_left', pickFromList, 0),outputsSpec,'Baseline_cst_left')
     TractWF.connect(tract_querier,('output_cst_right', pickFromList, 0),outputsSpec,'Baseline_cst_right')
-    # NN cst
+    TractWF.connect(tract_querier,('output_af_left', pickFromList, 0),outputsSpec,'Baseline_af_left')
+    TractWF.connect(tract_querier,('output_af_right', pickFromList, 0),outputsSpec,'Baseline_af_right')
+    # NN cst/af
     TractWF.connect(tract_querier,('output_cst_left', pickFromList, 1),outputsSpec,'NN_cst_left')
     TractWF.connect(tract_querier,('output_cst_right', pickFromList, 1),outputsSpec,'NN_cst_right')
-    # IFFT cst
+    TractWF.connect(tract_querier,('output_af_left', pickFromList, 1),outputsSpec,'NN_af_left')
+    TractWF.connect(tract_querier,('output_af_right', pickFromList, 1),outputsSpec,'NN_af_right')
+    # IFFT cst/af
     TractWF.connect(tract_querier,('output_cst_left', pickFromList, 2),outputsSpec,'IFFT_cst_left')
     TractWF.connect(tract_querier,('output_cst_right', pickFromList, 2),outputsSpec,'IFFT_cst_right')
-    # TV cst
+    TractWF.connect(tract_querier,('output_af_left', pickFromList, 2),outputsSpec,'IFFT_af_left')
+    TractWF.connect(tract_querier,('output_af_right', pickFromList, 2),outputsSpec,'IFFT_af_right')
+    # TV cst/af
     TractWF.connect(tract_querier,('output_cst_left', pickFromList, 3),outputsSpec,'TV_cst_left')
     TractWF.connect(tract_querier,('output_cst_right', pickFromList, 3),outputsSpec,'TV_cst_right')
-    # WTV cst
+    TractWF.connect(tract_querier,('output_af_left', pickFromList, 3),outputsSpec,'TV_af_left')
+    TractWF.connect(tract_querier,('output_af_right', pickFromList, 3),outputsSpec,'TV_af_right')
+    # WTV cst/af
     TractWF.connect(tract_querier,('output_cst_left', pickFromList, 4),outputsSpec,'WTV_cst_left')
     TractWF.connect(tract_querier,('output_cst_right', pickFromList, 4),outputsSpec,'WTV_cst_right')
+    TractWF.connect(tract_querier,('output_af_left', pickFromList, 4),outputsSpec,'WTV_af_left')
+    TractWF.connect(tract_querier,('output_af_right', pickFromList, 4),outputsSpec,'WTV_af_right')
 
     ##
     ## Step 4: Make SR CST left/right lists
     ##
 
     # step 4_1: input cst.left
-    cst_left_list = pe.Node(Function(function=MakeInputCSTList,
-                                     input_names=['NN_cst', 'IFFT_cst', 'TV_cst', 'WTV_cst'],
+    cst_left_list = pe.Node(Function(function=MakeInputTractsList,
+                                     input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_tract'],
                                      output_names=['outputList']),
                             name="cst_left_list")
-    TractWF.connect([(tract_querier,cst_left_list,[(('output_cst_left', pickFromList, 1),'NN_cst'),
-                                                   (('output_cst_left', pickFromList, 2),'IFFT_cst'),
-                                                   (('output_cst_left', pickFromList, 3),'TV_cst'),
-                                                   (('output_cst_left', pickFromList, 4),'WTV_cst')
+    TractWF.connect([(tract_querier,cst_left_list,[(('output_cst_left', pickFromList, 1),'NN_tract'),
+                                                   (('output_cst_left', pickFromList, 2),'IFFT_tract'),
+                                                   (('output_cst_left', pickFromList, 3),'TV_tract'),
+                                                   (('output_cst_left', pickFromList, 4),'WTV_tract')
                                                    ])])
 
     # step 4_2: input cst.right
-    cst_right_list = pe.Node(Function(function=MakeInputCSTList,
-                                      input_names=['NN_cst', 'IFFT_cst', 'TV_cst', 'WTV_cst'],
+    cst_right_list = pe.Node(Function(function=MakeInputTractsList,
+                                      input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_cst'],
                                       output_names=['outputList']),
                              name="cst_right_list")
-    TractWF.connect([(tract_querier,cst_right_list,[(('output_cst_right', pickFromList, 1),'NN_cst'),
-                                                    (('output_cst_right', pickFromList, 2),'IFFT_cst'),
-                                                    (('output_cst_right', pickFromList, 3),'TV_cst'),
-                                                    (('output_cst_right', pickFromList, 4),'WTV_cst')
+    TractWF.connect([(tract_querier,cst_right_list,[(('output_cst_right', pickFromList, 1),'NN_tract'),
+                                                    (('output_cst_right', pickFromList, 2),'IFFT_tract'),
+                                                    (('output_cst_right', pickFromList, 3),'TV_tract'),
+                                                    (('output_cst_right', pickFromList, 4),'WTV_tract')
                                                     ])])
+
+    # step 4_3: input af.left
+    af_left_list = pe.Node(Function(function=MakeInputTractsList,
+                                     input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_tract'],
+                                     output_names=['outputList']),
+                            name="af_left_list")
+    TractWF.connect([(tract_querier,af_left_list,[(('output_af_left', pickFromList, 1),'NN_tract'),
+                                                  (('output_af_left', pickFromList, 2),'IFFT_tract'),
+                                                  (('output_af_left', pickFromList, 3),'TV_tract'),
+                                                  (('output_af_left', pickFromList, 4),'WTV_tract')
+                                                  ])])
+
+    # step 4_4: input af.right
+    af_right_list = pe.Node(Function(function=MakeInputTractsList,
+                                      input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_cst'],
+                                      output_names=['outputList']),
+                             name="af_right_list")
+    TractWF.connect([(tract_querier,af_right_list,[(('output_af_right', pickFromList, 1),'NN_tract'),
+                                                   (('output_af_right', pickFromList, 2),'IFFT_tract'),
+                                                   (('output_af_right', pickFromList, 3),'TV_tract'),
+                                                   (('output_af_right', pickFromList, 4),'WTV_tract')
+                                                   ])])
 
     ##
     ## Step 5: Compute Bhattacharyya coeficient to find overlap between CST tract bundles
     ##
-    cst_overlap = pe.MapNode(interface=Function(function = CSTOverlap,
-                                                input_names=['gs_cst_left', 'gs_cst_right', 'sr_cst_left', 'sr_cst_right'],
+    tract_overlap = pe.MapNode(interface=Function(function = TractsOverlap,
+                                                input_names=['gs_cst_left', 'gs_cst_right', 'sr_cst_left', 'sr_cst_right',
+                                                             'gs_af_left', 'gs_af_right', 'sr_af_left', 'sr_af_right'],
                                                 output_names=['output_csv_file']),
-                             name="BhattacharyyaCoeficient", iterfield=['sr_cst_left','sr_cst_right'])
-    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 0),cst_overlap,'gs_cst_left')
-    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 0),cst_overlap,'gs_cst_right')
-    TractWF.connect(cst_left_list,'outputList',cst_overlap,'sr_cst_left')
-    TractWF.connect(cst_right_list,'outputList',cst_overlap,'sr_cst_right')
-    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 0), outputsSpec, 'NN_overlap_coeficient')
-    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 1), outputsSpec, 'IFFT_overlap_coeficient')
-    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 2), outputsSpec, 'TV_overlap_coeficient')
-    TractWF.connect(cst_overlap, ('output_csv_file', pickFromList, 3), outputsSpec, 'WTV_overlap_coeficient')
+                             name="BhattacharyyaCoeficient", iterfield=['sr_cst_left','sr_cst_right','sr_af_left','sr_af_right'])
+    TractWF.connect(tract_querier,('output_cst_left', pickFromList, 0),tract_overlap,'gs_cst_left')
+    TractWF.connect(tract_querier,('output_cst_right', pickFromList, 0),tract_overlap,'gs_cst_right')
+    TractWF.connect(tract_querier,('output_af_left', pickFromList, 0),tract_overlap,'gs_af_left')
+    TractWF.connect(tract_querier,('output_af_right', pickFromList, 0),tract_overlap,'gs_af_right')
+    TractWF.connect(cst_left_list,'outputList',tract_overlap,'sr_cst_left')
+    TractWF.connect(cst_right_list,'outputList',tract_overlap,'sr_cst_right')
+    TractWF.connect(af_left_list,'outputList',tract_overlap,'sr_af_left')
+    TractWF.connect(af_right_list,'outputList',tract_overlap,'sr_af_right')
+    TractWF.connect(tract_overlap, ('output_csv_file', pickFromList, 0), outputsSpec, 'NN_overlap_coeficient')
+    TractWF.connect(tract_overlap, ('output_csv_file', pickFromList, 1), outputsSpec, 'IFFT_overlap_coeficient')
+    TractWF.connect(tract_overlap, ('output_csv_file', pickFromList, 2), outputsSpec, 'TV_overlap_coeficient')
+    TractWF.connect(tract_overlap, ('output_csv_file', pickFromList, 3), outputsSpec, 'WTV_overlap_coeficient')
 
     return TractWF

@@ -71,10 +71,15 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                                               'IDWI_image','PurePlugsMask','WM_ROI_Labelmap','errorImagesStatisticsFile',
                                                               'Baseline_ukfTracts','NN_ukfTracts','IFFT_ukfTracts','TV_ukfTracts','WTV_ukfTracts',
                                                               'Baseline_cst_left','Baseline_cst_right',
+                                                              'Baseline_af_left','Baseline_af_right',
                                                               'NN_cst_left','NN_cst_right',
+                                                              'NN_af_left','NN_af_right',
                                                               'IFFT_cst_left','IFFT_cst_right',
+                                                              'IFFT_af_left','IFFT_af_right',
                                                               'TV_cst_left','TV_cst_right',
+                                                              'TV_af_left','TV_af_right',
                                                               'WTV_cst_left','WTV_cst_right',
+                                                              'WTV_af_left','WTV_af_right',
                                                               'NN_overlap_coeficient','IFFT_overlap_coeficient',
                                                               'TV_overlap_coeficient','WTV_overlap_coeficient'
                                                               ]),
@@ -160,14 +165,24 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
                                                  ('outputsSpec.WTV_ukfTracts','WTV_ukfTracts'),
                                                  ('outputsSpec.Baseline_cst_left','Baseline_cst_left'),
                                                  ('outputsSpec.Baseline_cst_right','Baseline_cst_right'),
+                                                 ('outputsSpec.Baseline_af_left','Baseline_af_left'),
+                                                 ('outputsSpec.Baseline_af_right','Baseline_af_right'),
                                                  ('outputsSpec.NN_cst_left','NN_cst_left'),
                                                  ('outputsSpec.NN_cst_right','NN_cst_right'),
+                                                 ('outputsSpec.NN_af_left','NN_af_left'),
+                                                 ('outputsSpec.NN_af_right','NN_af_right'),
                                                  ('outputsSpec.IFFT_cst_left','IFFT_cst_left'),
                                                  ('outputsSpec.IFFT_cst_right','IFFT_cst_right'),
+                                                 ('outputsSpec.IFFT_af_left','IFFT_af_left'),
+                                                 ('outputsSpec.IFFT_af_right','IFFT_af_right'),
                                                  ('outputsSpec.TV_cst_left','TV_cst_left'),
                                                  ('outputsSpec.TV_cst_right','TV_cst_right'),
+                                                 ('outputsSpec.TV_af_left','TV_af_left'),
+                                                 ('outputsSpec.TV_af_right','TV_af_right'),
                                                  ('outputsSpec.WTV_cst_left','WTV_cst_left'),
                                                  ('outputsSpec.WTV_cst_right','WTV_cst_right'),
+                                                 ('outputsSpec.WTV_af_left','WTV_af_left'),
+                                                 ('outputsSpec.WTV_af_right','WTV_af_right'),
                                                  ('outputsSpec.NN_overlap_coeficient','NN_overlap_coeficient'),
                                                  ('outputsSpec.IFFT_overlap_coeficient','IFFT_overlap_coeficient'),
                                                  ('outputsSpec.TV_overlap_coeficient','TV_overlap_coeficient'),
@@ -242,14 +257,24 @@ def runMainWorkflow(DWI_scan, T1_scan, T2_scan, FS_standard_labelMap, lobes_labe
     # Outputs/WMQL
     HCPWorkflow.connect(outputsSpec, 'Baseline_cst_left', DWIDataSink, 'Outputs.WMQL.@Baseline_cst_left')
     HCPWorkflow.connect(outputsSpec, 'Baseline_cst_right', DWIDataSink, 'Outputs.WMQL.@Baseline_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'Baseline_af_left', DWIDataSink, 'Outputs.WMQL.@Baseline_af_left')
+    HCPWorkflow.connect(outputsSpec, 'Baseline_af_right', DWIDataSink, 'Outputs.WMQL.@Baseline_af_right')
     HCPWorkflow.connect(outputsSpec, 'NN_cst_left', DWIDataSink, 'Outputs.WMQL.@NN_cst_left')
     HCPWorkflow.connect(outputsSpec, 'NN_cst_right', DWIDataSink, 'Outputs.WMQL.@NN_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'NN_af_left', DWIDataSink, 'Outputs.WMQL.@NN_af_left')
+    HCPWorkflow.connect(outputsSpec, 'NN_af_right', DWIDataSink, 'Outputs.WMQL.@NN_af_right')
     HCPWorkflow.connect(outputsSpec, 'IFFT_cst_left', DWIDataSink, 'Outputs.WMQL.@IFFT_cst_left')
     HCPWorkflow.connect(outputsSpec, 'IFFT_cst_right', DWIDataSink, 'Outputs.WMQL.@IFFT_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'IFFT_af_left', DWIDataSink, 'Outputs.WMQL.@IFFT_af_left')
+    HCPWorkflow.connect(outputsSpec, 'IFFT_af_right', DWIDataSink, 'Outputs.WMQL.@IFFT_af_right')
     HCPWorkflow.connect(outputsSpec, 'TV_cst_left', DWIDataSink, 'Outputs.WMQL.@TV_cst_left')
     HCPWorkflow.connect(outputsSpec, 'TV_cst_right', DWIDataSink, 'Outputs.WMQL.@TV_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'TV_af_left', DWIDataSink, 'Outputs.WMQL.@TV_af_left')
+    HCPWorkflow.connect(outputsSpec, 'TV_af_right', DWIDataSink, 'Outputs.WMQL.@TV_af_right')
     HCPWorkflow.connect(outputsSpec, 'WTV_cst_left', DWIDataSink, 'Outputs.WMQL.@WTV_cst_left')
     HCPWorkflow.connect(outputsSpec, 'WTV_cst_right', DWIDataSink, 'Outputs.WMQL.@WTV_cst_right')
+    HCPWorkflow.connect(outputsSpec, 'WTV_af_left', DWIDataSink, 'Outputs.WMQL.@WTV_af_left')
+    HCPWorkflow.connect(outputsSpec, 'WTV_af_right', DWIDataSink, 'Outputs.WMQL.@WTV_af_right')
     # Outputs/Stats
     HCPWorkflow.connect(outputsSpec, 'NN_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@NN_overlap_coeficient')
     HCPWorkflow.connect(outputsSpec, 'IFFT_overlap_coeficient', DWIDataSink, 'Outputs.Stats.@IFFT_overlap_coeficient')
