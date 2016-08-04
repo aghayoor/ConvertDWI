@@ -150,9 +150,9 @@ def CreateTractographyWorkflow(WFname):
         bc_cst_total = (bc_cst_left + bc_cst_right)/2.0
         bc_cst_total_top = (bc_cst_left_top + bc_cst_right_top)/2.0
         # compute Bhattacharyya Coeficient for af.left/right/total
-        bc_af_left = ComputeBhattacharyyaCoeficient(gs_af_left,sr_af_left)
-        bc_af_right = ComputeBhattacharyyaCoeficient(gs_af_right,sr_af_right)
-        bc_af_total = (bc_cst_left + bc_cst_right)/2.0
+        bc_af_left,bc_af_left_top = ComputeBhattacharyyaCoeficient(gs_af_left,sr_af_left)
+        bc_af_right,bc_af_right_top = ComputeBhattacharyyaCoeficient(gs_af_right,sr_af_right)
+        bc_af_total = (bc_af_left + bc_af_right)/2.0
         #
         statsList = [format(bc_cst_left,'.4f'), format(bc_cst_right,'.4f'), format(bc_cst_total,'.4f'),
                      format(bc_cst_left_top,'.4f'), format(bc_cst_right_top,'.4f'), format(bc_cst_total_top,'.4f'),
@@ -296,7 +296,7 @@ def CreateTractographyWorkflow(WFname):
 
     # step 4_2: input cst.right
     cst_right_list = pe.Node(Function(function=MakeInputTractsList,
-                                      input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_cst'],
+                                      input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_tract'],
                                       output_names=['outputList']),
                              name="cst_right_list")
     TractWF.connect([(tract_querier,cst_right_list,[(('output_cst_right', pickFromList, 1),'NN_tract'),
@@ -318,7 +318,7 @@ def CreateTractographyWorkflow(WFname):
 
     # step 4_4: input af.right
     af_right_list = pe.Node(Function(function=MakeInputTractsList,
-                                      input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_cst'],
+                                      input_names=['NN_tract', 'IFFT_tract', 'TV_tract', 'WTV_tract'],
                                       output_names=['outputList']),
                              name="af_right_list")
     TractWF.connect([(tract_querier,af_right_list,[(('output_af_right', pickFromList, 1),'NN_tract'),
