@@ -24,7 +24,7 @@ def CreateTractographyWorkflow(WFname):
 
     def runWMQL(input_tractography, input_atlas):
         import os
-        from wmql import TractQuerier
+        from tract_querier.nipype.wmql import TractQuerier
         # prepare proper prefix
         sr_file_name = os.path.basename(input_tractography)
         sr_file_name_base = os.path.splitext(sr_file_name)[0]
