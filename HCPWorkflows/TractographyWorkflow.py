@@ -154,9 +154,9 @@ def CreateTractographyWorkflow(WFname):
         bc_af_right,bc_af_right_top = ComputeBhattacharyyaCoeficient(gs_af_right,sr_af_right)
         bc_af_total = (bc_af_left + bc_af_right)/2.0
         #
-        statsList = [format(bc_cst_left,'.4f'), format(bc_cst_right,'.4f'), format(bc_cst_total,'.4f'),
-                     format(bc_cst_left_top,'.4f'), format(bc_cst_right_top,'.4f'), format(bc_cst_total_top,'.4f'),
-                     format(bc_af_left,'.4f'), format(bc_af_right,'.4f'), format(bc_af_total,'.4f')]
+        statsList = [format(bc_cst_left,'.3f'), format(bc_cst_right,'.3f'), format(bc_cst_total,'.3f'),
+                     format(bc_cst_left_top,'.3f'), format(bc_cst_right_top,'.3f'), format(bc_cst_total_top,'.3f'),
+                     format(bc_af_left,'.3f'), format(bc_af_right,'.3f'), format(bc_af_total,'.3f')]
         # create output file name
         srfn = os.path.basename(sr_cst_left)
         srfnbase = os.path.splitext(srfn)[0]

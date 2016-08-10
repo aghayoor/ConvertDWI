@@ -306,14 +306,14 @@ def CreateDistanceImagesWorkflow(WFname):
             temporal_pure_mean = statFilter.GetMean(40)
             temporal_NOTpure_mean = statFilter.GetMean(41)
             # Now create statistics list
-            statsList = [format(frontal_pure_mean,'.8f'),
-                         format(parietal_pure_mean,'.8f'),
-                         format(occipital_pure_mean,'.8f'),
-                         format(temporal_pure_mean,'.8f'),
-                         format(frontal_NOTpure_mean,'.8f'),
-                         format(parietal_NOTpure_mean,'.8f'),
-                         format(occipital_NOTpure_mean,'.8f'),
-                         format(temporal_NOTpure_mean,'.8f')]
+            statsList = [format(frontal_pure_mean,'.2e'),
+                         format(parietal_pure_mean,'.2e'),
+                         format(occipital_pure_mean,'.2e'),
+                         format(temporal_pure_mean,'.2e'),
+                         format(frontal_NOTpure_mean,'.2e'),
+                         format(parietal_NOTpure_mean,'.2e'),
+                         format(occipital_NOTpure_mean,'.2e'),
+                         format(temporal_NOTpure_mean,'.2e')]
             return statsList
         ####
         def writeLabelStatistics(filename,statisticsDictionary):
