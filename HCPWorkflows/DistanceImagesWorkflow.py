@@ -305,8 +305,32 @@ def CreateDistanceImagesWorkflow(WFname):
             #
             temporal_pure_mean = statFilter.GetMean(40)
             temporal_NOTpure_mean = statFilter.GetMean(41)
+            ###
+            frontal_wm = ((roi == 10) + (roi == 11))
+            fro_statFilter = sitk.LabelStatisticsImageFilter()
+            fro_statFilter.Execute(distImage, frontal_wm)
+            frontal_mean = fro_statFilter.GetMean(1)
+            #
+            parietal_wm = ((roi == 20) + (roi == 21))
+            par_statFilter = sitk.LabelStatisticsImageFilter()
+            par_statFilter.Execute(distImage, parietal_wm)
+            parietal_mean = par_statFilter.GetMean(1)
+            #
+            occipital_wm = ((roi == 30) + (roi == 31))
+            oc_statFilter = sitk.LabelStatisticsImageFilter()
+            oc_statFilter.Execute(distImage, occipital_wm)
+            occipital_mean = oc_statFilter.GetMean(1)
+            #
+            temporal_wm = ((roi == 40) + (roi == 41))
+            tem_statFilter = sitk.LabelStatisticsImageFilter()
+            tem_statFilter.Execute(distImage, temporal_wm)
+            temporal_mean = tem_statFilter.GetMean(1)
             # Now create statistics list
-            statsList = [format(frontal_pure_mean,'.2e'),
+            statsList = [format(frontal_mean,'.2e'),
+                         format(parietal_mean,'.2e'),
+                         format(occipital_mean,'.2e'),
+                         format(temporal_mean,'.2e'),
+                         format(frontal_pure_mean,'.2e'),
                          format(parietal_pure_mean,'.2e'),
                          format(occipital_pure_mean,'.2e'),
                          format(temporal_pure_mean,'.2e'),
@@ -319,7 +343,9 @@ def CreateDistanceImagesWorkflow(WFname):
         def writeLabelStatistics(filename,statisticsDictionary):
             import csv
             with open(filename, 'wb') as lf:
-                headerdata = [['#Label', 'frontal_pure_mean', 'parietal_pure_mean',
+                headerdata = [['#Label','frontal_mean', 'parietal_mean',
+                               'occipital_mean', 'temporal_mean',
+                               'frontal_pure_mean', 'parietal_pure_mean',
                                'occipital_pure_mean', 'temporal_pure_mean',
                                'frontal_NOTpure_mean', 'parietal_NOTpure_mean',
                                'occipital_NOTpure_mean', 'temporal_NOTpure_mean']]
