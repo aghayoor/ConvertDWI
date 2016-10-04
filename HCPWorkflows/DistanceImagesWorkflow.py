@@ -181,7 +181,8 @@ def CreateDistanceImagesWorkflow(WFname):
         return imagesList
 
     def MakePurePlugsMaskInputList(inputT1, inputT2, inputB0):
-        #imagesList = [inputT1, inputT2, inputB0]
+        imagesList = [inputT1, inputT2, inputB0]
+        '''
         # resample the average B0 image by a factor of 2 (create low-res B0)
         # now pure plugs mask will be created from averge B0 and its low-res
         # (inputT1/T2 are not used anymore)
@@ -193,6 +194,7 @@ def CreateDistanceImagesWorkflow(WFname):
         avgB0_lr_fn = os.path.realpath('average_B0_lr.nrrd')
         sitk.WriteImage(avgB0_lr,avgB0_lr_fn)
         imagesList = [inputB0, avgB0_lr_fn]
+        '''
         return imagesList
 
     def CreateBrainPurePlugsMask(PurePlugsMask, DWI_brainMask):
@@ -208,9 +210,9 @@ def CreateDistanceImagesWorkflow(WFname):
             res_mask = resampler.Execute(in_mask)
             return res_mask
         ##
-        ppmask = sitk.ReadImage(PurePlugsMask) # 2.5x2.5x2.5
+        ppmask = sitk.ReadImage(PurePlugsMask) # 1.25x1.25x1.25
         brainmask = sitk.ReadImage(DWI_brainMask) # 1.25x1.25x1.25
-        ppmask = ResampleMask(ppmask, brainmask)
+        #ppmask = ResampleMask(ppmask, brainmask) No resampling is needed when both masks are in the same space
         brainPurePlugs = ppmask * sitk.Cast(brainmask,sitk.sitkUInt8)
         BrainPurePlugsMask = os.path.realpath('BrainPurePlugsMask.nrrd')
         sitk.WriteImage(brainPurePlugs,BrainPurePlugsMask)
@@ -474,7 +476,8 @@ def CreateDistanceImagesWorkflow(WFname):
                                              name="MakePurePlugsMaskInputList")
     DistWF.connect(inputsSpec, 'inputT1', MakePurePlugsMaskInputListNode, 'inputT1')
     DistWF.connect(inputsSpec, 'inputT2', MakePurePlugsMaskInputListNode, 'inputT2')
-    DistWF.connect(DTIEstim, 'B0', MakePurePlugsMaskInputListNode, 'inputB0')
+    #DistWF.connect(DTIEstim, 'B0', MakePurePlugsMaskInputListNode, 'inputB0')
+    DistWF.connect(DTIEstim, 'idwi', MakePurePlugsMaskInputListNode, 'inputB0') # use IDWI image for computing pureplugs
 
     ## Step 4_2: Create the mask
     PurePlugsMaskNode = pe.Node(interface=GeneratePurePlugMask(), name="PurePlugsMask")
