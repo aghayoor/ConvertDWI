@@ -6,6 +6,7 @@ ExternalSources/
 *.mex*
 
 # Editor save files
+*.DS_Store
 *~
 *.swp
 
