@@ -16,7 +16,7 @@ function convert_dwi(input_dwi_dicom_dir, input_dwi_header_fn, output_dwi_nrrd_d
 %thisFile = mfilename('fullpath');
 %addpath(fullfile(fileparts(thisFile),'support_functions'));
 
-fprintf('Starting conversion:\n    input_dwi_dicom_dir: %s\n    input_dwi_header_fn: %s\n    output_nrrd_dwi_dir: %s\n',input_dwi_dicom_dir,input_dwi_header_fn,output_dwi_nrrd_dir);
+fprintf('Starting conversion:\n    input_dwi_dicom_dir: %s\n    input_dwi_header_fn: %s\n    file_with_ref_matadata_fn: %s\n    output_nrrd_dwi_dir: %s\n',input_dwi_dicom_dir,input_dwi_header_fn,file_with_ref_matadata_fn,output_dwi_nrrd_dir);
 
 % Number of volumes
 Nvol = 28;
@@ -112,7 +112,7 @@ nrrdStrct.spacedirections = sd;
 nrrdStrct.spaceorigin = y.ImagePositionPatient;
 
 %% Write out
-oname = fullfile(output_dwi_nrrd_dir,[y.PatientID '.nrrd']);
+oname = fullfile(output_dwi_nrrd_dir,[y.PatientID '_DWI.nrrd']);
 fprintf('Writing output DWI nrrd file to disk...\n');
 nrrdSaveWithMetadata(oname,nrrdStrct);
 
